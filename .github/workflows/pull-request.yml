@@ -86,6 +86,7 @@ jobs:
           -Dsonar.organization=pulse-pass
           -Dsonar.host.url=https://sonarcloud.io
           -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+          -Dsonar.qualitygate.wait=true
 
   build:
     needs: sonar

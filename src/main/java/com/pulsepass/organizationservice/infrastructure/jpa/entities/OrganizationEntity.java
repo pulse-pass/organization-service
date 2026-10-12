@@ -113,123 +113,19 @@ public class OrganizationEntity {
 
     public Organization toDomain() {
         return new Organization(
-                id,
-                organizationKey,
-                legalPersonKey,
-                externalAccountKey,
-                externalWalletKey,
-                documentNumber,
-                name,
-                externalApiKey,
-                balanceAmount,
-                organizationRejectionReason == null ? null : organizationRejectionReason.toDomain(),
-                organizationStatus.toDomain(),
-                createdAt,
-                updatedAt
+                this.id,
+                this.organizationKey,
+                this.legalPersonKey,
+                this.externalAccountKey,
+                this.externalWalletKey,
+                this.documentNumber,
+                this.name,
+                this.externalApiKey,
+                this.balanceAmount,
+                this.organizationRejectionReason == null ? null : this.organizationRejectionReason.toDomain(),
+                this.organizationStatus.toDomain(),
+                this.createdAt,
+                this.updatedAt
         );
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getOrganizationKey() {
-        return organizationKey;
-    }
-
-    public void setOrganizationKey(String organizationKey) {
-        this.organizationKey = organizationKey;
-    }
-
-    public String getLegalPersonKey() {
-        return legalPersonKey;
-    }
-
-    public void setLegalPersonKey(String legalPersonKey) {
-        this.legalPersonKey = legalPersonKey;
-    }
-
-    public String getExternalAccountKey() {
-        return externalAccountKey;
-    }
-
-    public void setExternalAccountKey(String externalAccountKey) {
-        this.externalAccountKey = externalAccountKey;
-    }
-
-    public String getExternalWalletKey() {
-        return externalWalletKey;
-    }
-
-    public void setExternalWalletKey(String externalWalletKey) {
-        this.externalWalletKey = externalWalletKey;
-    }
-
-    public String getDocumentNumber() {
-        return documentNumber;
-    }
-
-    public void setDocumentNumber(String documentNumber) {
-        this.documentNumber = documentNumber;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getExternalApiKey() {
-        return externalApiKey;
-    }
-
-    public void setExternalApiKey(String externalApiKey) {
-        this.externalApiKey = externalApiKey;
-    }
-
-    public BigDecimal getBalanceAmount() {
-        return balanceAmount;
-    }
-
-    public void setBalanceAmount(BigDecimal balanceAmount) {
-        this.balanceAmount = balanceAmount;
-    }
-
-    public OrganizationRejectionReasonEntity getOrganizationRejectionReason() {
-        return organizationRejectionReason;
-    }
-
-    public void setOrganizationRejectionReason(OrganizationRejectionReasonEntity organizationRejectionReason) {
-        this.organizationRejectionReason = organizationRejectionReason;
-    }
-
-    public OrganizationStatusEntity getOrganizationStatus() {
-        return organizationStatus;
-    }
-
-    public void setOrganizationStatus(OrganizationStatusEntity organizationStatus) {
-        this.organizationStatus = organizationStatus;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
 }

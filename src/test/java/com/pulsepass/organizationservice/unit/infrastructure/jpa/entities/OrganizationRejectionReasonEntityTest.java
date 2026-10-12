@@ -13,26 +13,22 @@ class OrganizationRejectionReasonEntityTest {
 
     @Test
     void fromDomainToDomain_reason_roundTrips() {
-        var domain = new OrganizationRejectionReason(2L, "INACTIVE_DOCUMENT", "Inactive", NOW);
+        var domain = new OrganizationRejectionReason(1L, "INACTIVE_DOCUMENT", "desc", NOW);
 
-        var entity = OrganizationRejectionReasonEntity.fromDomain(domain);
+        var result = OrganizationRejectionReasonEntity.fromDomain(domain).toDomain();
 
-        assertThat(entity.getDescription()).isEqualTo("Inactive");
-        assertThat(entity.toDomain()).usingRecursiveComparison().isEqualTo(domain);
+        assertThat(result).usingRecursiveComparison().isEqualTo(domain);
     }
 
     @Test
-    void setters_values_areReflectedByGetters() {
-        var entity = new OrganizationRejectionReasonEntity();
+    void toDomain_allArgumentsConstructor_mapsEveryField() {
+        var entity = new OrganizationRejectionReasonEntity(2L, "UNVERIFIED_OWNER", "other", NOW);
 
-        entity.setId(2L);
-        entity.setEnumerator("R");
-        entity.setDescription("D");
-        entity.setCreatedAt(NOW);
+        var result = entity.toDomain();
 
-        assertThat(entity.getId()).isEqualTo(2L);
-        assertThat(entity.getEnumerator()).isEqualTo("R");
-        assertThat(entity.getDescription()).isEqualTo("D");
-        assertThat(entity.getCreatedAt()).isEqualTo(NOW);
+        assertThat(result.getId()).isEqualTo(2L);
+        assertThat(result.getEnumerator()).isEqualTo("UNVERIFIED_OWNER");
+        assertThat(result.getDescription()).isEqualTo("other");
+        assertThat(result.getCreatedAt()).isEqualTo(NOW);
     }
 }

@@ -10,6 +10,9 @@ paths:
 - Java 21, Spring Boot 4.x, Maven (no Gradle, no Lombok). Package `com.pulsepass.<service>`.
 - Packages: `api` (controllers, schemas, responses, exceptions, validators), `application` (services, dtos/input), `domain` (entities, repositories, exceptions, `UnitOfWork`), `infrastructure/jpa` (JPA entities, `Jpa*Repository`, `*RepositoryImpl`, `JpaUnitOfWork`) and `common`.
 - Pure domain entity + JPA `*Entity` with `fromDomain`/`toDomain`; repository interface in the domain, implementation in `infrastructure/jpa`.
+- JPA `*Entity` classes have only fields, constructors and `fromDomain`/`toDomain` — no getters/setters (Hibernate uses field access); this also keeps them from being flagged as duplicates of the domain entities.
+- Inside entities (domain and JPA), always reference the object's own fields with `this.` (getters, `toDomain`, `toHistoryData`).
+- Never read another entity's fields directly (e.g. `history.organization.name`); go through a method such as `toDomain()`, because lazy proxies only load on method calls and their fields stay empty.
 - Helpers are named `<Subject>Handlers` (`JsonHandlers`) and live directly in `common/`, without a `utils` subfolder.
 - Static factories follow `from<Source>` (`fromEntity`, `fromDomain`, `OrganizationHistory.fromOrganization`), not `create`.
 - Logic that builds data from the entity itself (e.g. the history snapshot, `toHistoryData()`) belongs to the domain, not to the service.

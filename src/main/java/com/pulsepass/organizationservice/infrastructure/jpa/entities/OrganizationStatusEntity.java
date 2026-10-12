@@ -37,30 +37,6 @@ public class OrganizationStatusEntity {
     }
 
     public OrganizationStatus toDomain() {
-        return new OrganizationStatus(id, enumerator, createdAt);
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getEnumerator() {
-        return enumerator;
-    }
-
-    public void setEnumerator(String enumerator) {
-        this.enumerator = enumerator;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
+        return new OrganizationStatus(this.id, this.enumerator, this.createdAt);
     }
 }

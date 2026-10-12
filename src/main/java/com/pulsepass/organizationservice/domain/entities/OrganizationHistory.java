@@ -60,7 +60,7 @@ public class OrganizationHistory {
     }
 
     public Long getId() {
-        return id;
+        return this.id;
     }
 
     public void setId(Long id) {
@@ -68,7 +68,7 @@ public class OrganizationHistory {
     }
 
     public String getOrganizationHistoryKey() {
-        return organizationHistoryKey;
+        return this.organizationHistoryKey;
     }
 
     public void setOrganizationHistoryKey(String organizationHistoryKey) {
@@ -76,7 +76,7 @@ public class OrganizationHistory {
     }
 
     public Organization getOrganization() {
-        return organization;
+        return this.organization;
     }
 
     public void setOrganization(Organization organization) {
@@ -84,7 +84,7 @@ public class OrganizationHistory {
     }
 
     public OrganizationStatus getOldStatus() {
-        return oldStatus;
+        return this.oldStatus;
     }
 
     public void setOldStatus(OrganizationStatus oldStatus) {
@@ -92,7 +92,7 @@ public class OrganizationHistory {
     }
 
     public OrganizationStatus getNewStatus() {
-        return newStatus;
+        return this.newStatus;
     }
 
     public void setNewStatus(OrganizationStatus newStatus) {
@@ -100,7 +100,7 @@ public class OrganizationHistory {
     }
 
     public String getHistoryData() {
-        return historyData;
+        return this.historyData;
     }
 
     public void setHistoryData(String historyData) {
@@ -108,7 +108,7 @@ public class OrganizationHistory {
     }
 
     public LocalDateTime getCreatedAt() {
-        return createdAt;
+        return this.createdAt;
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {

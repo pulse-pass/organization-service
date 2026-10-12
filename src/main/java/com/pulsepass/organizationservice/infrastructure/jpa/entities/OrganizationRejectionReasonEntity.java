@@ -51,38 +51,6 @@ public class OrganizationRejectionReasonEntity {
     }
 
     public OrganizationRejectionReason toDomain() {
-        return new OrganizationRejectionReason(id, enumerator, description, createdAt);
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getEnumerator() {
-        return enumerator;
-    }
-
-    public void setEnumerator(String enumerator) {
-        this.enumerator = enumerator;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
+        return new OrganizationRejectionReason(this.id, this.enumerator, this.description, this.createdAt);
     }
 }

@@ -18,7 +18,7 @@ public class OrganizationStatus {
     }
 
     public Long getId() {
-        return id;
+        return this.id;
     }
 
     public void setId(Long id) {
@@ -26,7 +26,7 @@ public class OrganizationStatus {
     }
 
     public String getEnumerator() {
-        return enumerator;
+        return this.enumerator;
     }
 
     public void setEnumerator(String enumerator) {
@@ -34,7 +34,7 @@ public class OrganizationStatus {
     }
 
     public LocalDateTime getCreatedAt() {
-        return createdAt;
+        return this.createdAt;
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {

@@ -25,7 +25,7 @@ public class OrganizationRejectionReason {
     }
 
     public Long getId() {
-        return id;
+        return this.id;
     }
 
     public void setId(Long id) {
@@ -33,7 +33,7 @@ public class OrganizationRejectionReason {
     }
 
     public String getEnumerator() {
-        return enumerator;
+        return this.enumerator;
     }
 
     public void setEnumerator(String enumerator) {
@@ -41,7 +41,7 @@ public class OrganizationRejectionReason {
     }
 
     public String getDescription() {
-        return description;
+        return this.description;
     }
 
     public void setDescription(String description) {
@@ -49,7 +49,7 @@ public class OrganizationRejectionReason {
     }
 
     public LocalDateTime getCreatedAt() {
-        return createdAt;
+        return this.createdAt;
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {

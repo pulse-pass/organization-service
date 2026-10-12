@@ -77,69 +77,13 @@ public class OrganizationHistoryEntity {
 
     public OrganizationHistory toDomain() {
         return new OrganizationHistory(
-                id,
-                organizationHistoryKey,
-                organization.toDomain(),
-                oldStatus == null ? null : oldStatus.toDomain(),
-                newStatus.toDomain(),
-                historyData,
-                createdAt
+                this.id,
+                this.organizationHistoryKey,
+                this.organization.toDomain(),
+                this.oldStatus == null ? null : this.oldStatus.toDomain(),
+                this.newStatus.toDomain(),
+                this.historyData,
+                this.createdAt
         );
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getOrganizationHistoryKey() {
-        return organizationHistoryKey;
-    }
-
-    public void setOrganizationHistoryKey(String organizationHistoryKey) {
-        this.organizationHistoryKey = organizationHistoryKey;
-    }
-
-    public OrganizationEntity getOrganization() {
-        return organization;
-    }
-
-    public void setOrganization(OrganizationEntity organization) {
-        this.organization = organization;
-    }
-
-    public OrganizationStatusEntity getOldStatus() {
-        return oldStatus;
-    }
-
-    public void setOldStatus(OrganizationStatusEntity oldStatus) {
-        this.oldStatus = oldStatus;
-    }
-
-    public OrganizationStatusEntity getNewStatus() {
-        return newStatus;
-    }
-
-    public void setNewStatus(OrganizationStatusEntity newStatus) {
-        this.newStatus = newStatus;
-    }
-
-    public String getHistoryData() {
-        return historyData;
-    }
-
-    public void setHistoryData(String historyData) {
-        this.historyData = historyData;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
     }
 }

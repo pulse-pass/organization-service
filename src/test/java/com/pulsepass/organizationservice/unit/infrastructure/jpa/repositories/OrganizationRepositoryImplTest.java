@@ -33,16 +33,16 @@ class OrganizationRepositoryImplTest {
     @Test
     void save_organization_savesEntityAndReturnsMappedDomain() {
         when(jpaRepository.save(any(OrganizationEntity.class))).thenAnswer(inv -> {
-            OrganizationEntity entity = inv.getArgument(0);
-            entity.setId(42L);
-            return entity;
+            Organization persisted = inv.<OrganizationEntity>getArgument(0).toDomain();
+            persisted.setId(42L);
+            return OrganizationEntity.fromDomain(persisted);
         });
 
         Organization saved = repository.save(organization);
 
         ArgumentCaptor<OrganizationEntity> captor = ArgumentCaptor.forClass(OrganizationEntity.class);
         verify(jpaRepository).save(captor.capture());
-        assertThat(captor.getValue().getOrganizationKey()).isEqualTo("org");
+        assertThat(captor.getValue().toDomain().getOrganizationKey()).isEqualTo("org");
         assertThat(saved.getId()).isEqualTo(42L);
         assertThat(saved.getOrganizationKey()).isEqualTo("org");
     }

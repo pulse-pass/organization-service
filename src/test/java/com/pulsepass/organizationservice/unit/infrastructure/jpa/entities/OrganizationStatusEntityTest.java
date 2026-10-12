@@ -15,24 +15,19 @@ class OrganizationStatusEntityTest {
     void fromDomainToDomain_status_roundTrips() {
         var domain = new OrganizationStatus(1L, "PENDING", NOW);
 
-        var entity = OrganizationStatusEntity.fromDomain(domain);
+        var result = OrganizationStatusEntity.fromDomain(domain).toDomain();
 
-        assertThat(entity.getId()).isEqualTo(1L);
-        assertThat(entity.getEnumerator()).isEqualTo("PENDING");
-        assertThat(entity.getCreatedAt()).isEqualTo(NOW);
-        assertThat(entity.toDomain()).usingRecursiveComparison().isEqualTo(domain);
+        assertThat(result).usingRecursiveComparison().isEqualTo(domain);
     }
 
     @Test
-    void setters_values_areReflectedByGetters() {
-        var entity = new OrganizationStatusEntity();
+    void toDomain_allArgumentsConstructor_mapsEveryField() {
+        var entity = new OrganizationStatusEntity(2L, "APPROVED", NOW);
 
-        entity.setId(1L);
-        entity.setEnumerator("E");
-        entity.setCreatedAt(NOW);
+        var result = entity.toDomain();
 
-        assertThat(entity.getId()).isEqualTo(1L);
-        assertThat(entity.getEnumerator()).isEqualTo("E");
-        assertThat(entity.getCreatedAt()).isEqualTo(NOW);
+        assertThat(result.getId()).isEqualTo(2L);
+        assertThat(result.getEnumerator()).isEqualTo("APPROVED");
+        assertThat(result.getCreatedAt()).isEqualTo(NOW);
     }
 }

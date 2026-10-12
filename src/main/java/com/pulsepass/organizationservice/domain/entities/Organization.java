@@ -70,7 +70,7 @@ public class Organization {
     }
 
     public Long getId() {
-        return id;
+        return this.id;
     }
 
     public void setId(Long id) {
@@ -78,7 +78,7 @@ public class Organization {
     }
 
     public String getOrganizationKey() {
-        return organizationKey;
+        return this.organizationKey;
     }
 
     public void setOrganizationKey(String organizationKey) {
@@ -86,7 +86,7 @@ public class Organization {
     }
 
     public String getLegalPersonKey() {
-        return legalPersonKey;
+        return this.legalPersonKey;
     }
 
     public void setLegalPersonKey(String legalPersonKey) {
@@ -94,7 +94,7 @@ public class Organization {
     }
 
     public String getExternalAccountKey() {
-        return externalAccountKey;
+        return this.externalAccountKey;
     }
 
     public void setExternalAccountKey(String externalAccountKey) {
@@ -102,7 +102,7 @@ public class Organization {
     }
 
     public String getExternalWalletKey() {
-        return externalWalletKey;
+        return this.externalWalletKey;
     }
 
     public void setExternalWalletKey(String externalWalletKey) {
@@ -110,7 +110,7 @@ public class Organization {
     }
 
     public String getDocumentNumber() {
-        return documentNumber;
+        return this.documentNumber;
     }
 
     public void setDocumentNumber(String documentNumber) {
@@ -118,7 +118,7 @@ public class Organization {
     }
 
     public String getName() {
-        return name;
+        return this.name;
     }
 
     public void setName(String name) {
@@ -126,7 +126,7 @@ public class Organization {
     }
 
     public String getExternalApiKey() {
-        return externalApiKey;
+        return this.externalApiKey;
     }
 
     public void setExternalApiKey(String externalApiKey) {
@@ -134,7 +134,7 @@ public class Organization {
     }
 
     public BigDecimal getBalanceAmount() {
-        return balanceAmount;
+        return this.balanceAmount;
     }
 
     public void setBalanceAmount(BigDecimal balanceAmount) {
@@ -142,7 +142,7 @@ public class Organization {
     }
 
     public OrganizationRejectionReason getOrganizationRejectionReason() {
-        return organizationRejectionReason;
+        return this.organizationRejectionReason;
     }
 
     public void setOrganizationRejectionReason(OrganizationRejectionReason organizationRejectionReason) {
@@ -150,7 +150,7 @@ public class Organization {
     }
 
     public OrganizationStatus getOrganizationStatus() {
-        return organizationStatus;
+        return this.organizationStatus;
     }
 
     public void setOrganizationStatus(OrganizationStatus organizationStatus) {
@@ -158,7 +158,7 @@ public class Organization {
     }
 
     public LocalDateTime getCreatedAt() {
-        return createdAt;
+        return this.createdAt;
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {
@@ -166,7 +166,7 @@ public class Organization {
     }
 
     public LocalDateTime getUpdatedAt() {
-        return updatedAt;
+        return this.updatedAt;
     }
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
@@ -175,14 +175,14 @@ public class Organization {
 
     public Map<String, Object> toHistoryData() {
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("organization_key", organizationKey);
-        data.put("legal_person_key", legalPersonKey);
-        data.put("document_number", documentNumber);
-        data.put("name", name);
-        data.put("balance_amount", balanceAmount);
+        data.put("organization_key", this.organizationKey);
+        data.put("legal_person_key", this.legalPersonKey);
+        data.put("document_number", this.documentNumber);
+        data.put("name", this.name);
+        data.put("balance_amount", this.balanceAmount);
         data.put("organization_rejection_reason",
-                organizationRejectionReason != null ? organizationRejectionReason.getEnumerator() : null);
-        data.put("organization_status", organizationStatus.getEnumerator());
+                this.organizationRejectionReason != null ? this.organizationRejectionReason.getEnumerator() : null);
+        data.put("organization_status", this.organizationStatus.getEnumerator());
         return data;
     }
 }

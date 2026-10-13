@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -191,5 +192,31 @@ class OrganizationControllerTest {
                 .andExpect(jsonPath("$.code").value("GEN00401"));
 
         verifyNoInteractions(organizationService);
+    }
+
+    @Test
+    void unknownRoute_returns404WithGen00404() throws Exception {
+        mockMvc.perform(get("/unknown_route"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("GEN00404"))
+                .andExpect(jsonPath("$.title").value("Not Found"));
+    }
+
+    @Test
+    void createRoute_withGet_returns405WithGen00405() throws Exception {
+        mockMvc.perform(get(URL).header("internal-token", TOKEN))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.code").value("GEN00405"))
+                .andExpect(jsonPath("$.title").value("Method Not Allowed"));
+    }
+
+    @Test
+    void createRoute_withTextPlain_returns415WithGen00415() throws Exception {
+        mockMvc.perform(post(URL).header("internal-token", TOKEN)
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .content("plain"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.code").value("GEN00415"))
+                .andExpect(jsonPath("$.title").value("Unsupported Media Type"));
     }
 }

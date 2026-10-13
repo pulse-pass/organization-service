@@ -66,7 +66,7 @@ public class OrganizationService {
                     pendingStatus
             ));
         } catch (DataIntegrityViolationException e) {
-            logger.warn("OrganizationService.createOrganization - Unique constraint violation: {}", e.getMessage());
+            logger.warn("OrganizationService.createOrganization - Unique constraint violation", e);
             throw new OrganizationAlreadyExistsException();
         }
 

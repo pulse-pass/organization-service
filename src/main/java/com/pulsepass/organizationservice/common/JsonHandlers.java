@@ -1,5 +1,6 @@
 package com.pulsepass.organizationservice.common;
 
+import java.util.Locale;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.PropertyNamingStrategies;
 import tools.jackson.databind.json.JsonMapper;
@@ -19,5 +20,9 @@ public final class JsonHandlers {
         } catch (JacksonException e) {
             throw new IllegalArgumentException("Failed to serialize object to JSON", e);
         }
+    }
+
+    public static String toSnakeCase(String value) {
+        return value.replaceAll("([a-z0-9])([A-Z])", "$1_$2").toLowerCase(Locale.ROOT);
     }
 }

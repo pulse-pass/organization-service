@@ -46,6 +46,18 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
     private static void assertError(Response response, int status, String code) {
         assertThat(response.statusCode()).isEqualTo(status);
         assertThat(response.jsonPath().getString("code")).isEqualTo(code);
+        assertThat(response.jsonPath().getList("extra_fields")).isEmpty();
+    }
+
+    @SafeVarargs
+    private static void assertSchemaError(Response response, Map<String, String>... expected) {
+        assertThat(response.statusCode()).isEqualTo(400);
+        assertThat(response.jsonPath().getString("code")).isEqualTo("GEN00400");
+        assertThat(response.jsonPath().getList("extra_fields", Map.class)).containsExactlyInAnyOrder(expected);
+    }
+
+    private static Map<String, String> item(String field, String error) {
+        return Map.of("field", field, "error", error);
     }
 
     @Test
@@ -88,7 +100,7 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
         Map<String, Object> payload = validPayload();
         payload.remove("legal_person_key");
 
-        assertError(post(payload), 400, "GEN00400");
+        assertSchemaError(post(payload), item("legal_person_key", "REQUIRED"));
     }
 
     @Test
@@ -96,7 +108,8 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
         Map<String, Object> payload = validPayload();
         payload.put("legal_person_key", "");
 
-        assertError(post(payload), 400, "GEN00400");
+        assertSchemaError(
+                post(payload), item("legal_person_key", "REQUIRED"), item("legal_person_key", "INVALID_FORMAT"));
     }
 
     @Test
@@ -104,7 +117,7 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
         Map<String, Object> payload = validPayload();
         payload.put("legal_person_key", "not-a-uuid");
 
-        assertError(post(payload), 400, "GEN00400");
+        assertSchemaError(post(payload), item("legal_person_key", "INVALID_FORMAT"));
     }
 
     @Test
@@ -112,7 +125,7 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
         Map<String, Object> payload = validPayload();
         payload.put("legal_person_key", "00000000-0000-0000-0000-000000000000");
 
-        assertError(post(payload), 400, "GEN00400");
+        assertSchemaError(post(payload), item("legal_person_key", "INVALID_FORMAT"));
     }
 
     @Test
@@ -120,7 +133,7 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
         Map<String, Object> payload = validPayload();
         payload.remove("document_number");
 
-        assertError(post(payload), 400, "GEN00400");
+        assertSchemaError(post(payload), item("document_number", "REQUIRED"));
     }
 
     @Test
@@ -128,7 +141,7 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
         Map<String, Object> payload = validPayload();
         payload.put("document_number", DocumentHandlers.generateCnpj().substring(0, 13));
 
-        assertError(post(payload), 400, "GEN00400");
+        assertSchemaError(post(payload), item("document_number", "INVALID_FORMAT"));
     }
 
     @Test
@@ -136,7 +149,7 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
         Map<String, Object> payload = validPayload();
         payload.put("document_number", "1234567800019A");
 
-        assertError(post(payload), 400, "GEN00400");
+        assertSchemaError(post(payload), item("document_number", "INVALID_FORMAT"));
     }
 
     @Test
@@ -144,7 +157,7 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
         Map<String, Object> payload = validPayload();
         payload.remove("name");
 
-        assertError(post(payload), 400, "GEN00400");
+        assertSchemaError(post(payload), item("name", "REQUIRED"));
     }
 
     @Test
@@ -152,7 +165,7 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
         Map<String, Object> payload = validPayload();
         payload.put("name", "");
 
-        assertError(post(payload), 400, "GEN00400");
+        assertSchemaError(post(payload), item("name", "REQUIRED"));
     }
 
     @Test
@@ -160,7 +173,7 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
         Map<String, Object> payload = validPayload();
         payload.put("name", "a".repeat(256));
 
-        assertError(post(payload), 400, "GEN00400");
+        assertSchemaError(post(payload), item("name", "SIZE"));
     }
 
     @Test
@@ -174,7 +187,44 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
                 .then()
                     .extract().response();
 
-        assertError(response, 400, "GEN00400");
+        assertSchemaError(response, item("body", "INVALID_FORMAT"));
+    }
+
+    @Test
+    void createOrganization_getOnInternalRoute_returnsMethodNotAllowed() {
+        Response response = given()
+                    .header(INTERNAL_TOKEN_HEADER, internalToken)
+                .when()
+                    .get(POST_ORGANIZATION)
+                .then()
+                    .extract().response();
+
+        assertError(response, 405, "GEN00405");
+    }
+
+    @Test
+    void createOrganization_textPlainContentType_returnsUnsupportedMediaType() {
+        Response response = given()
+                    .header(INTERNAL_TOKEN_HEADER, internalToken)
+                    .contentType(ContentType.TEXT)
+                    .body("text")
+                .when()
+                    .post(POST_ORGANIZATION)
+                .then()
+                    .extract().response();
+
+        assertError(response, 415, "GEN00415");
+    }
+
+    @Test
+    void createOrganization_unknownRoute_returnsNotFound() {
+        Response response = given()
+                .when()
+                    .get("/rota_inexistente")
+                .then()
+                    .extract().response();
+
+        assertError(response, 404, "GEN00404");
     }
 
     @Test

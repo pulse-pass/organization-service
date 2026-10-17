@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.pulsepass.organizationservice.api.exceptions.ErrorResponse;
-import com.pulsepass.organizationservice.api.exceptions.FieldErrorResponse;
+import com.pulsepass.organizationservice.api.exceptions.ExtraFieldErrorResponse;
 import com.pulsepass.organizationservice.api.exceptions.GlobalExceptionHandler;
 import com.pulsepass.organizationservice.domain.exceptions.DomainException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationAlreadyExistsException;
@@ -118,7 +118,7 @@ class GlobalExceptionHandlerTest {
                 "Bad Request",
                 "bad request",
                 "GEN00400",
-                List.of(new FieldErrorResponse("phone_number.area_code", "INVALID_FORMAT"))
+                List.of(new ExtraFieldErrorResponse("phone_number.area_code", "INVALID_FORMAT"))
         ));
     }
 
@@ -134,7 +134,7 @@ class GlobalExceptionHandlerTest {
                 "Bad Request",
                 "bad request",
                 "GEN00400",
-                List.of(new FieldErrorResponse("body", "INVALID_FORMAT"))
+                List.of(new ExtraFieldErrorResponse("body", "INVALID_FORMAT"))
         ));
     }
 
@@ -149,7 +149,7 @@ class GlobalExceptionHandlerTest {
                 "Bad Request",
                 "bad request",
                 "GEN00400",
-                List.of(new FieldErrorResponse("body", "INVALID_FORMAT"))
+                List.of(new ExtraFieldErrorResponse("body", "INVALID_FORMAT"))
         ));
     }
 

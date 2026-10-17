@@ -25,7 +25,7 @@ public class OrganizationController {
         this.internalRequestValidator = internalRequestValidator;
     }
 
-    @PostMapping("/internal/organizations")
+    @PostMapping("/organization/internal/organizations")
     public ResponseEntity<CreateOrganizationResponse> createOrganization(
             @RequestHeader(value = "internal-token", required = false) String internalToken,
             @Valid @RequestBody CreateOrganizationSchema request

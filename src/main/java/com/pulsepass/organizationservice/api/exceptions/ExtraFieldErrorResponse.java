@@ -4,7 +4,7 @@ import com.pulsepass.organizationservice.common.JsonHandlers;
 import java.util.Map;
 import org.springframework.validation.FieldError;
 
-public record FieldErrorResponse(
+public record ExtraFieldErrorResponse(
         String field,
         String error
 ) {
@@ -18,8 +18,8 @@ public record FieldErrorResponse(
             "Size", "SIZE"
     );
 
-    public static FieldErrorResponse fromFieldError(FieldError fieldError) {
-        return new FieldErrorResponse(
+    public static ExtraFieldErrorResponse fromFieldError(FieldError fieldError) {
+        return new ExtraFieldErrorResponse(
                 JsonHandlers.toSnakeCase(fieldError.getField()),
                 ERRORS.getOrDefault(fieldError.getCode(), "INVALID_FORMAT")
         );

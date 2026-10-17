@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 
 class TestPostCreateOrganization extends BaseIntegrationTest {
 
-    private static final String POST_ORGANIZATION = "/internal/organizations";
+    private static final String POST_ORGANIZATION = "/organization/internal/organizations";
     private static final String NAME = "Producoes Exemplo Ltda";
 
     private static Map<String, Object> payload(String legalPersonKey, String documentNumber, String name) {

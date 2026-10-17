@@ -6,6 +6,6 @@ public record ErrorResponse(
         String title,
         String message,
         String code,
-        List<FieldErrorResponse> extraFields
+        List<ExtraFieldErrorResponse> extraFields
 ) {
 }

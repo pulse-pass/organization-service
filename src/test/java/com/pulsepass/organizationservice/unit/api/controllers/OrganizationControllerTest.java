@@ -40,7 +40,7 @@ import org.springframework.test.web.servlet.MockMvc;
 })
 class OrganizationControllerTest {
 
-    private static final String URL = "/internal/organizations";
+    private static final String URL = "/organization/internal/organizations";
     private static final String TOKEN = "test-token";
     private static final String LEGAL_PERSON_KEY = "7b0f5e6a-1c3d-4e8f-9a2b-0d1e2f3a4b5c";
     private static final String DOCUMENT_NUMBER = "12345678000195";

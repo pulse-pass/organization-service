@@ -39,7 +39,7 @@ public class GlobalExceptionHandler {
             HttpStatus status,
             String messageKey,
             String code,
-            List<FieldErrorResponse> extraFields
+            List<ExtraFieldErrorResponse> extraFields
     ) {
         String message = messageSource.getMessage(messageKey, null, LocaleContextHolder.getLocale());
         return ResponseEntity
@@ -59,11 +59,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleInvalidRequest(MethodArgumentNotValidException ex) {
-        List<FieldErrorResponse> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
-                .map(FieldErrorResponse::fromFieldError)
+        List<ExtraFieldErrorResponse> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
+                .map(ExtraFieldErrorResponse::fromFieldError)
                 .toList();
-        List<FieldErrorResponse> extraFields = fieldErrors.isEmpty()
-                ? List.of(new FieldErrorResponse("body", "INVALID_FORMAT"))
+        List<ExtraFieldErrorResponse> extraFields = fieldErrors.isEmpty()
+                ? List.of(new ExtraFieldErrorResponse("body", "INVALID_FORMAT"))
                 : fieldErrors;
         logger.warn(
                 "GlobalExceptionHandler.handleInvalidRequest - Invalid request fields {}",
@@ -74,7 +74,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleUnreadableRequest(HttpMessageNotReadableException ex) {
-        List<FieldErrorResponse> extraFields = List.of(new FieldErrorResponse("body", "INVALID_FORMAT"));
+        List<ExtraFieldErrorResponse> extraFields = List.of(new ExtraFieldErrorResponse("body", "INVALID_FORMAT"));
         logger.warn(
                 "GlobalExceptionHandler.handleUnreadableRequest - Request body could not be read {}",
                 Map.of("extra_fields", extraFields)

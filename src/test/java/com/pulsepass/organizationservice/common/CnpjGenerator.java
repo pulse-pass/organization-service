@@ -2,11 +2,11 @@ package com.pulsepass.organizationservice.common;
 
 import java.util.Random;
 
-public final class DocumentHandlers {
+public final class CnpjGenerator {
 
     private static final Random RANDOM = new Random();
 
-    private DocumentHandlers() {
+    private CnpjGenerator() {
     }
 
     private static int calculateDigit(int[] digits, int length) {

@@ -22,6 +22,11 @@ paths:
 - In services and controllers, public methods go: create, then update, then get.
 - Prefer separate, clear `if`s over compound `||` conditions when each case has its own meaning.
 
+## Code
+- No comments in code, configuration, scripts or Dockerfile (Javadoc included): names and structure must explain the code, and decisions go to the rules, the README or the task notes. The only exceptions are the version next to a workflow action pinned by SHA and generated or third-party files kept as they come (`mvnw`, `checkstyle.xml`).
+- No defensive validation (e.g. checking that a value from the environment is not empty); `try/catch` only around the call that actually throws.
+- Keep it simple: compare strings with `equals`, no `MessageDigest.isEqual` or similar tricks.
+
 ## Transactions and repositories
 - Explicit transaction control through the `UnitOfWork` (request-scoped `JpaUnitOfWork`), never `@Transactional`.
 - Reads go **before** `unitOfWork.begin()`, validations first (e.g. duplicate checks) and only then the lookups the writes need (e.g. the PENDING status); `begin()`/`commit()` wraps only the writes.
@@ -46,12 +51,13 @@ paths:
 - Schemas validate only the shape of the request (required fields, size, digits-only format, list size). Business rules (document check digits, allowed values such as the collaborator role) live in the service and throw domain exceptions; no custom Bean Validation annotations.
 - Route paths start with the service name (`/onboarding/legal_persons`), in snake_case with underscores, never hyphens. Service-to-service routes live under `/<service>/internal/**` (e.g. `/organization/internal/organizations`) and are never exposed by the gateways. The gateways expose routes without the prefix and add it when forwarding.
 - JSON in snake_case.
-- Internal route: the controller takes `@RequestHeader(value = "internal-token", required = false)` and calls `internalRequestValidator.validateInternalRequest(token)` on its first line (no filter). The token is shared by every application (`INTERNAL_TOKEN`) and compared with `equals`.
+- Internal route (`/<service>/internal/**`): the controller takes `@RequestHeader(value = "internal-token", required = false)` and calls `internalRequestValidator.validateInternalRequest(token)` on its first line (no filter). The token is shared by every application (`INTERNAL_TOKEN`) and compared with `equals`.
 - Logs follow `ClassName.method - message`. The message is literal text; data goes in a single `Map` argument (`logger.error("X.y - Failed to create the user {}", Map.of("person_key", key), e)`), never interpolated in the sentence. The exception is passed as the last argument, never `e.getMessage()`.
 - A create endpoint returns only the created resource (no child lists).
 
 ## External gateways
 - Each gateway has its own folder in `domain/gateways/<gateway>/` (named after the gateway, not the provider), holding the interface and a `dtos/` folder (e.g. `identityprovider/IdentityProviderGateway`, `identityprovider/dtos/CreateUserInputDTO`). The interface receives and returns those DTOs, named after the operation, never loose parameters.
 - The implementation lives in `infrastructure/gateways/<provider>/` named `<Provider><Interface>` (e.g. `keycloak/KeycloakIdentityProviderGateway`, `organizationservice/OrganizationServiceOrganizationGateway`), using `RestClient`. Request and response bodies are typed records in `infrastructure/gateways/<provider>/dtos` (`<Provider><Operation>Request` / `Response`) with `@JsonProperty` on every field; no `Map` bodies.
+- Timeouts come from `spring.http.clients.connect-timeout` and `spring.http.clients.read-timeout`, which Spring Boot applies to the auto-configured `RestClient.Builder`; gateways receive the builder injected and never build a request factory by hand.
 - The base URL comes from the property `app.<name>.url`, fed by the `<NAME>_URL` variable that `service-start.sh` resolves from the `<NAME>_TEST_URL` / `<NAME>_DEVELOPMENT_URL` pair.
-- A transport failure or unexpected status in the operation itself is logged in the gateway and becomes a domain exception for the operation (e.g. `UserCreationException`), mapped to 422 in the `STATUS_MAP`, with the service code and a generic "try again later" message. Each `try` wraps only the HTTP call (one `try` per call); status and body checks come after it. Auxiliary calls (access token, lookups such as the role) run before the operation, outside its `try`, and fail with a generic exception (`IllegalStateException` or the `RestClientException` itself) → 500 `GEN00500`.
+- A transport failure or unexpected status in the operation itself is logged in the gateway and becomes a domain exception for the operation (e.g. `UserCreationException`), mapped to 422 in the `STATUS_MAP`, with the service code and a generic "try again later" message. Each `try` wraps only the HTTP call (one `try` per call); status and body checks come after it. The access token is part of the operation: its failure (transport, error status or no token in the body) is logged and becomes the same domain exception (e.g. `UserCreationException`). Other auxiliary calls (lookups such as the role) run before the operation, outside its `try`, and fail with a generic exception (`IllegalStateException` or the `RestClientException` itself) → 500 `GEN00500`.

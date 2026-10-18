@@ -2,7 +2,7 @@ SET NAMES utf8mb4;
 
 CREATE SCHEMA IF NOT EXISTS organization;
 
-CREATE TABLE organization.organization_status (
+CREATE TABLE IF NOT EXISTS organization.organization_status (
     id            BIGINT        NOT NULL AUTO_INCREMENT,
     enumerator    VARCHAR(50)   NOT NULL,
     created_at    TIMESTAMP(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -10,10 +10,10 @@ CREATE TABLE organization.organization_status (
     CONSTRAINT organization_status_enumerator_unique UNIQUE (enumerator)
 );
 
-INSERT INTO organization.organization_status (enumerator)
+INSERT IGNORE INTO organization.organization_status (enumerator)
 VALUES ('PENDING'), ('APPROVED'), ('REJECTED'), ('DELETED');
 
-CREATE TABLE organization.organization_rejection_reason (
+CREATE TABLE IF NOT EXISTS organization.organization_rejection_reason (
     id            BIGINT        NOT NULL AUTO_INCREMENT,
     enumerator    VARCHAR(50)   NOT NULL,
     description   VARCHAR(255)  NOT NULL,
@@ -22,13 +22,13 @@ CREATE TABLE organization.organization_rejection_reason (
     CONSTRAINT organization_rejection_reason_enumerator_unique UNIQUE (enumerator)
 );
 
-INSERT INTO organization.organization_rejection_reason (enumerator, description) VALUES
+INSERT IGNORE INTO organization.organization_rejection_reason (enumerator, description) VALUES
     ('INACTIVE_DOCUMENT',     'CNPJ inapto, suspenso ou baixado na Receita Federal'),
     ('INCOMPATIBLE_ACTIVITY', 'Atividade da empresa incompatível com a venda de ingressos'),
     ('INCONSISTENT_DATA',     'Dados cadastrais inconsistentes com os registros da empresa'),
     ('UNVERIFIED_OWNER',      'Não foi possível confirmar o vínculo da dona da conta com a empresa');
 
-CREATE TABLE organization.organization (
+CREATE TABLE IF NOT EXISTS organization.organization (
     id                                BIGINT         NOT NULL AUTO_INCREMENT,
     organization_key                  VARCHAR(36)    NOT NULL,
     legal_person_key                  VARCHAR(36)    NOT NULL,
@@ -52,7 +52,7 @@ CREATE TABLE organization.organization (
         REFERENCES organization.organization_status (id)
 );
 
-CREATE TABLE organization.organization_history (
+CREATE TABLE IF NOT EXISTS organization.organization_history (
     id                        BIGINT        NOT NULL AUTO_INCREMENT,
     organization_history_key  VARCHAR(36)   NOT NULL,
     organization_id           BIGINT        NOT NULL,

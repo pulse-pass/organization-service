@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.pulsepass.organizationservice.common.CnpjGenerator;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -20,10 +19,10 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
         String legalPersonKey = UUID.randomUUID().toString();
         String documentNumber = CnpjGenerator.generateCnpj();
         String name = "Producoes Exemplo Ltda";
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("legal_person_key", legalPersonKey);
-        payload.put("document_number", documentNumber);
-        payload.put("name", name);
+        Map<String, Object> payload = Map.of(
+                "legal_person_key", legalPersonKey,
+                "document_number", documentNumber,
+                "name", name);
 
         Response response = given()
                     .header(INTERNAL_TOKEN_HEADER, internalToken)
@@ -45,10 +44,10 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
     @Test
     void createOrganization_duplicatedLegalPersonKey_returnsConflict() {
         String legalPersonKey = UUID.randomUUID().toString();
-        Map<String, Object> firstPayload = new HashMap<>();
-        firstPayload.put("legal_person_key", legalPersonKey);
-        firstPayload.put("document_number", CnpjGenerator.generateCnpj());
-        firstPayload.put("name", "Producoes Exemplo Ltda");
+        Map<String, Object> firstPayload = Map.of(
+                "legal_person_key", legalPersonKey,
+                "document_number", CnpjGenerator.generateCnpj(),
+                "name", "Producoes Exemplo Ltda");
         Response firstResponse = given()
                     .header(INTERNAL_TOKEN_HEADER, internalToken)
                     .contentType(ContentType.JSON)
@@ -58,10 +57,10 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
                 .then()
                     .extract().response();
         assertThat(firstResponse.statusCode()).isEqualTo(201);
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("legal_person_key", legalPersonKey);
-        payload.put("document_number", CnpjGenerator.generateCnpj());
-        payload.put("name", "Producoes Exemplo Ltda");
+        Map<String, Object> payload = Map.of(
+                "legal_person_key", legalPersonKey,
+                "document_number", CnpjGenerator.generateCnpj(),
+                "name", "Producoes Exemplo Ltda");
 
         Response response = given()
                     .header(INTERNAL_TOKEN_HEADER, internalToken)
@@ -80,10 +79,10 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
     @Test
     void createOrganization_duplicatedDocumentNumber_returnsConflict() {
         String documentNumber = CnpjGenerator.generateCnpj();
-        Map<String, Object> firstPayload = new HashMap<>();
-        firstPayload.put("legal_person_key", UUID.randomUUID().toString());
-        firstPayload.put("document_number", documentNumber);
-        firstPayload.put("name", "Producoes Exemplo Ltda");
+        Map<String, Object> firstPayload = Map.of(
+                "legal_person_key", UUID.randomUUID().toString(),
+                "document_number", documentNumber,
+                "name", "Producoes Exemplo Ltda");
         Response firstResponse = given()
                     .header(INTERNAL_TOKEN_HEADER, internalToken)
                     .contentType(ContentType.JSON)
@@ -93,10 +92,10 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
                 .then()
                     .extract().response();
         assertThat(firstResponse.statusCode()).isEqualTo(201);
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("legal_person_key", UUID.randomUUID().toString());
-        payload.put("document_number", documentNumber);
-        payload.put("name", "Producoes Exemplo Ltda");
+        Map<String, Object> payload = Map.of(
+                "legal_person_key", UUID.randomUUID().toString(),
+                "document_number", documentNumber,
+                "name", "Producoes Exemplo Ltda");
 
         Response response = given()
                     .header(INTERNAL_TOKEN_HEADER, internalToken)
@@ -114,9 +113,9 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
 
     @Test
     void createOrganization_missingLegalPersonKey_returnsBadRequest() {
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("document_number", CnpjGenerator.generateCnpj());
-        payload.put("name", "Producoes Exemplo Ltda");
+        Map<String, Object> payload = Map.of(
+                "document_number", CnpjGenerator.generateCnpj(),
+                "name", "Producoes Exemplo Ltda");
 
         Response response = given()
                     .header(INTERNAL_TOKEN_HEADER, internalToken)
@@ -136,10 +135,10 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
 
     @Test
     void createOrganization_emptyLegalPersonKey_returnsBadRequest() {
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("document_number", CnpjGenerator.generateCnpj());
-        payload.put("name", "Producoes Exemplo Ltda");
-        payload.put("legal_person_key", "");
+        Map<String, Object> payload = Map.of(
+                "document_number", CnpjGenerator.generateCnpj(),
+                "name", "Producoes Exemplo Ltda",
+                "legal_person_key", "");
 
         Response response = given()
                     .header(INTERNAL_TOKEN_HEADER, internalToken)
@@ -160,10 +159,10 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
 
     @Test
     void createOrganization_nonUuidLegalPersonKey_returnsBadRequest() {
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("document_number", CnpjGenerator.generateCnpj());
-        payload.put("name", "Producoes Exemplo Ltda");
-        payload.put("legal_person_key", "not-a-uuid");
+        Map<String, Object> payload = Map.of(
+                "document_number", CnpjGenerator.generateCnpj(),
+                "name", "Producoes Exemplo Ltda",
+                "legal_person_key", "not-a-uuid");
 
         Response response = given()
                     .header(INTERNAL_TOKEN_HEADER, internalToken)
@@ -183,10 +182,10 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
 
     @Test
     void createOrganization_nilLegalPersonKey_returnsBadRequest() {
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("document_number", CnpjGenerator.generateCnpj());
-        payload.put("name", "Producoes Exemplo Ltda");
-        payload.put("legal_person_key", "00000000-0000-0000-0000-000000000000");
+        Map<String, Object> payload = Map.of(
+                "document_number", CnpjGenerator.generateCnpj(),
+                "name", "Producoes Exemplo Ltda",
+                "legal_person_key", "00000000-0000-0000-0000-000000000000");
 
         Response response = given()
                     .header(INTERNAL_TOKEN_HEADER, internalToken)
@@ -206,9 +205,9 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
 
     @Test
     void createOrganization_missingDocumentNumber_returnsBadRequest() {
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("legal_person_key", UUID.randomUUID().toString());
-        payload.put("name", "Producoes Exemplo Ltda");
+        Map<String, Object> payload = Map.of(
+                "legal_person_key", UUID.randomUUID().toString(),
+                "name", "Producoes Exemplo Ltda");
 
         Response response = given()
                     .header(INTERNAL_TOKEN_HEADER, internalToken)
@@ -228,10 +227,10 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
 
     @Test
     void createOrganization_documentNumberWithThirteenDigits_returnsBadRequest() {
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("legal_person_key", UUID.randomUUID().toString());
-        payload.put("name", "Producoes Exemplo Ltda");
-        payload.put("document_number", CnpjGenerator.generateCnpj().substring(0, 13));
+        Map<String, Object> payload = Map.of(
+                "legal_person_key", UUID.randomUUID().toString(),
+                "name", "Producoes Exemplo Ltda",
+                "document_number", CnpjGenerator.generateCnpj().substring(0, 13));
 
         Response response = given()
                     .header(INTERNAL_TOKEN_HEADER, internalToken)
@@ -251,10 +250,10 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
 
     @Test
     void createOrganization_documentNumberWithLetters_returnsBadRequest() {
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("legal_person_key", UUID.randomUUID().toString());
-        payload.put("name", "Producoes Exemplo Ltda");
-        payload.put("document_number", "1234567800019A");
+        Map<String, Object> payload = Map.of(
+                "legal_person_key", UUID.randomUUID().toString(),
+                "name", "Producoes Exemplo Ltda",
+                "document_number", "1234567800019A");
 
         Response response = given()
                     .header(INTERNAL_TOKEN_HEADER, internalToken)
@@ -274,9 +273,9 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
 
     @Test
     void createOrganization_missingName_returnsBadRequest() {
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("legal_person_key", UUID.randomUUID().toString());
-        payload.put("document_number", CnpjGenerator.generateCnpj());
+        Map<String, Object> payload = Map.of(
+                "legal_person_key", UUID.randomUUID().toString(),
+                "document_number", CnpjGenerator.generateCnpj());
 
         Response response = given()
                     .header(INTERNAL_TOKEN_HEADER, internalToken)
@@ -296,10 +295,10 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
 
     @Test
     void createOrganization_emptyName_returnsBadRequest() {
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("legal_person_key", UUID.randomUUID().toString());
-        payload.put("document_number", CnpjGenerator.generateCnpj());
-        payload.put("name", "");
+        Map<String, Object> payload = Map.of(
+                "legal_person_key", UUID.randomUUID().toString(),
+                "document_number", CnpjGenerator.generateCnpj(),
+                "name", "");
 
         Response response = given()
                     .header(INTERNAL_TOKEN_HEADER, internalToken)
@@ -319,10 +318,10 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
 
     @Test
     void createOrganization_nameWith256Characters_returnsBadRequest() {
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("legal_person_key", UUID.randomUUID().toString());
-        payload.put("document_number", CnpjGenerator.generateCnpj());
-        payload.put("name", "a".repeat(256));
+        Map<String, Object> payload = Map.of(
+                "legal_person_key", UUID.randomUUID().toString(),
+                "document_number", CnpjGenerator.generateCnpj(),
+                "name", "a".repeat(256));
 
         Response response = given()
                     .header(INTERNAL_TOKEN_HEADER, internalToken)
@@ -403,10 +402,10 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
 
     @Test
     void createOrganization_missingInternalToken_returnsUnauthorized() {
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("legal_person_key", UUID.randomUUID().toString());
-        payload.put("document_number", CnpjGenerator.generateCnpj());
-        payload.put("name", "Producoes Exemplo Ltda");
+        Map<String, Object> payload = Map.of(
+                "legal_person_key", UUID.randomUUID().toString(),
+                "document_number", CnpjGenerator.generateCnpj(),
+                "name", "Producoes Exemplo Ltda");
 
         Response response = given()
                     .contentType(ContentType.JSON)
@@ -423,10 +422,10 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
 
     @Test
     void createOrganization_wrongInternalToken_returnsUnauthorized() {
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("legal_person_key", UUID.randomUUID().toString());
-        payload.put("document_number", CnpjGenerator.generateCnpj());
-        payload.put("name", "Producoes Exemplo Ltda");
+        Map<String, Object> payload = Map.of(
+                "legal_person_key", UUID.randomUUID().toString(),
+                "document_number", CnpjGenerator.generateCnpj(),
+                "name", "Producoes Exemplo Ltda");
 
         Response response = given()
                     .header(INTERNAL_TOKEN_HEADER, "wrong-token")

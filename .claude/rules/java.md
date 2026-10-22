@@ -26,6 +26,7 @@ paths:
 - No comments in code, configuration, scripts or Dockerfile (Javadoc included): names and structure must explain the code, and decisions go to the rules, the README or the task notes. The only exceptions are the version next to a workflow action pinned by SHA and generated or third-party files kept as they come (`mvnw`, `checkstyle.xml`).
 - No defensive validation (e.g. checking that a value from the environment is not empty); `try/catch` only around the call that actually throws.
 - Keep it simple: compare strings with `equals`, no `MessageDigest.isEqual` or similar tricks.
+- `to*`/`from*` methods exist only in classes that represent data, converting themselves: `toDTO()` in schemas, `toDomain()` and static `fromDomain(...)` in JPA entities, static `from*` in responses and history entities (`fromEntity`, `fromOrganization`), `toHistoryData()` in domain entities; plus the static helpers of `common/` (`JsonHandlers.toJson`, `toSnakeCase`). Services, gateways, controllers and other components never have a `to*`/`from*` method: a private step that checks a value is `validate*` and returns nothing (e.g. `validateTokenResponse`), and one that builds something is named after the action (`fetch*`, `build*`).
 
 ## Transactions and repositories
 - Explicit transaction control through the `UnitOfWork` (request-scoped `JpaUnitOfWork`), never `@Transactional`.

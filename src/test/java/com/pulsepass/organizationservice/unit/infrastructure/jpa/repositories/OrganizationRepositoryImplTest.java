@@ -11,10 +11,15 @@ import com.pulsepass.organizationservice.domain.entities.OrganizationStatus;
 import com.pulsepass.organizationservice.infrastructure.jpa.entities.OrganizationEntity;
 import com.pulsepass.organizationservice.infrastructure.jpa.repositories.JpaOrganizationRepository;
 import com.pulsepass.organizationservice.infrastructure.jpa.repositories.OrganizationRepositoryImpl;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 class OrganizationRepositoryImplTest {
 
@@ -77,5 +82,29 @@ class OrganizationRepositoryImplTest {
         when(jpaRepository.findByDocumentNumber("x")).thenReturn(Optional.empty());
 
         assertThat(repository.findByDocumentNumber("x")).isEmpty();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void findAll_existingPage_returnsMappedDomainsUsingZeroBasedPageable() {
+        Page<OrganizationEntity> page = new PageImpl<>(List.of(OrganizationEntity.fromDomain(organization)));
+        when(jpaRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
+
+        List<Organization> result = repository.findAll("legal", 3, 10);
+
+        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        verify(jpaRepository).findAll(any(Specification.class), captor.capture());
+        assertThat(captor.getValue().getPageNumber()).isEqualTo(2);
+        assertThat(captor.getValue().getPageSize()).isEqualTo(10);
+        assertThat(result).extracting(Organization::getLegalPersonKey).containsExactly("legal");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void findAll_emptyPage_returnsEmptyList() {
+        when(jpaRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<OrganizationEntity>(List.of()));
+
+        assertThat(repository.findAll("legal", 1, 30)).isEmpty();
     }
 }

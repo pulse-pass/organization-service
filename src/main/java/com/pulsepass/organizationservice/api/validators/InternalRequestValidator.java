@@ -1,5 +1,6 @@
 package com.pulsepass.organizationservice.api.validators;
 
+import com.pulsepass.organizationservice.domain.exceptions.MissingSelectedAgentKeyException;
 import com.pulsepass.organizationservice.domain.exceptions.UnauthorizedInternalRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,10 +22,17 @@ public class InternalRequestValidator {
         return internalToken.equals(token);
     }
 
-    public void validateInternalRequest(String token) {
+    public void validateInternalToken(String token) {
         if (!isValid(token)) {
-            logger.warn("InternalRequestValidator.validateInternalRequest - Missing or invalid internal token");
+            logger.warn("InternalRequestValidator.validateInternalToken - Missing or invalid internal token");
             throw new UnauthorizedInternalRequestException();
+        }
+    }
+
+    public void validateSelectedAgentKey(String selectedAgentKey) {
+        if (selectedAgentKey == null || selectedAgentKey.isBlank()) {
+            logger.warn("InternalRequestValidator.validateSelectedAgentKey - Missing selected agent key");
+            throw new MissingSelectedAgentKeyException();
         }
     }
 }

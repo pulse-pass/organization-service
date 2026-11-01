@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.pulsepass.organizationservice.api.exceptions.ExtraFieldErrorResponse;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.validation.FieldError;
 
 class ExtraFieldErrorResponseTest {
@@ -45,5 +46,21 @@ class ExtraFieldErrorResponseTest {
     void fromFieldError_unknownCode_returnsInvalidFormat() {
         assertThat(ExtraFieldErrorResponse.fromFieldError(fieldError("name", "Positive")).error())
                 .isEqualTo("INVALID_FORMAT");
+    }
+
+    @Test
+    void fromParameterError_min_returnsSize() {
+        var error = new DefaultMessageSourceResolvable(new String[]{"Min.page", "Min"});
+
+        assertThat(ExtraFieldErrorResponse.fromParameterError("page", error))
+                .isEqualTo(new ExtraFieldErrorResponse("page", "SIZE"));
+    }
+
+    @Test
+    void fromParameterError_max_returnsSize() {
+        var error = new DefaultMessageSourceResolvable(new String[]{"Max.page_size", "Max"});
+
+        assertThat(ExtraFieldErrorResponse.fromParameterError("page_size", error))
+                .isEqualTo(new ExtraFieldErrorResponse("page_size", "SIZE"));
     }
 }

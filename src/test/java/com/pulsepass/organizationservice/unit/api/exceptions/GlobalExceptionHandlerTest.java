@@ -2,11 +2,13 @@ package com.pulsepass.organizationservice.unit.api.exceptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.pulsepass.organizationservice.api.exceptions.ErrorResponse;
 import com.pulsepass.organizationservice.api.exceptions.ExtraFieldErrorResponse;
 import com.pulsepass.organizationservice.api.exceptions.GlobalExceptionHandler;
 import com.pulsepass.organizationservice.domain.exceptions.DomainException;
+import com.pulsepass.organizationservice.domain.exceptions.MissingSelectedAgentKeyException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationAlreadyExistsException;
 import com.pulsepass.organizationservice.domain.exceptions.UnauthorizedInternalRequestException;
 import java.util.List;
@@ -15,6 +17,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.context.support.StaticMessageSource;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpInputMessage;
@@ -24,9 +27,13 @@ import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
+import org.springframework.validation.method.ParameterValidationResult;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 class GlobalExceptionHandlerTest {
@@ -72,6 +79,19 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleDomain_unauthorizedInternalRequest_returns401WithGen00401() {
         var response = handler.handleDomain(new UnauthorizedInternalRequestException());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody()).isEqualTo(new ErrorResponse(
+                "Unauthorized",
+                "unauthorized",
+                "GEN00401",
+                List.of()
+        ));
+    }
+
+    @Test
+    void handleDomain_missingSelectedAgentKey_returns401WithGen00401() {
+        var response = handler.handleDomain(new MissingSelectedAgentKeyException());
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         assertThat(response.getBody()).isEqualTo(new ErrorResponse(
@@ -193,5 +213,44 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNSUPPORTED_MEDIA_TYPE);
         assertThat(response.getBody()).isEqualTo(
                 new ErrorResponse("Unsupported Media Type", "unsupported media type", "GEN00415", List.of()));
+    }
+
+    @Test
+    void handleInvalidParameter_typeMismatch_returns400WithParameterField() throws Exception {
+        var parameter = new MethodParameter(getClass().getDeclaredMethod("dummy", String.class), 0);
+        var exception = new MethodArgumentTypeMismatchException("abc", Integer.class, "page_size", parameter, null);
+
+        var response = handler.handleInvalidParameter(exception);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(new ErrorResponse(
+                "Bad Request",
+                "bad request",
+                "GEN00400",
+                List.of(new ExtraFieldErrorResponse("page_size", "INVALID_FORMAT"))
+        ));
+    }
+
+    @SuppressWarnings("unused")
+    private void pagedDummy(@RequestParam(name = "page_size") Integer pageSize) {
+    }
+
+    @Test
+    void handleInvalidParameterValue_constraintViolated_returns400WithParameterField() throws Exception {
+        var parameter = new MethodParameter(getClass().getDeclaredMethod("pagedDummy", Integer.class), 0);
+        var result = new ParameterValidationResult(
+                parameter, 101, List.of(new DefaultMessageSourceResolvable("Max")), null, null, null, (e, p) -> null);
+        var exception = mock(HandlerMethodValidationException.class);
+        when(exception.getParameterValidationResults()).thenReturn(List.of(result));
+
+        var response = handler.handleInvalidParameterValue(exception);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(new ErrorResponse(
+                "Bad Request",
+                "bad request",
+                "GEN00400",
+                List.of(new ExtraFieldErrorResponse("page_size", "SIZE"))
+        ));
     }
 }

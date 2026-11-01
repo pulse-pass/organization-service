@@ -20,6 +20,7 @@ import com.pulsepass.organizationservice.domain.repositories.OrganizationHistory
 import com.pulsepass.organizationservice.domain.repositories.OrganizationRepository;
 import com.pulsepass.organizationservice.domain.repositories.OrganizationStatusRepository;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -208,5 +209,24 @@ class OrganizationServiceTest {
         assertThatThrownBy(() -> service.createOrganization(dto)).isSameAs(failure);
 
         verify(unitOfWork, never()).commit();
+    }
+
+    @Test
+    void listOrganizations_existingOrganizations_returnsRepositoryResult() {
+        Organization organization = new Organization("org", LEGAL_PERSON_KEY, DOCUMENT_NUMBER, NAME, pendingStatus);
+        when(organizationRepository.findAll(LEGAL_PERSON_KEY, 2, 5)).thenReturn(List.of(organization));
+
+        List<Organization> result = service.listOrganizations(LEGAL_PERSON_KEY, 2, 5);
+
+        assertThat(result).containsExactly(organization);
+        verify(organizationRepository).findAll(LEGAL_PERSON_KEY, 2, 5);
+        verifyNoInteractions(unitOfWork);
+    }
+
+    @Test
+    void listOrganizations_noOrganizations_returnsEmptyList() {
+        when(organizationRepository.findAll(LEGAL_PERSON_KEY, 1, 30)).thenReturn(List.of());
+
+        assertThat(service.listOrganizations(LEGAL_PERSON_KEY, 1, 30)).isEmpty();
     }
 }

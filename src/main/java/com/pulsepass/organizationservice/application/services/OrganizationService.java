@@ -10,6 +10,7 @@ import com.pulsepass.organizationservice.domain.exceptions.OrganizationAlreadyEx
 import com.pulsepass.organizationservice.domain.repositories.OrganizationHistoryRepository;
 import com.pulsepass.organizationservice.domain.repositories.OrganizationRepository;
 import com.pulsepass.organizationservice.domain.repositories.OrganizationStatusRepository;
+import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,5 +77,12 @@ public class OrganizationService {
 
         logger.info("OrganizationService.createOrganization - Successfully finished");
         return organization;
+    }
+
+    public List<Organization> listOrganizations(String legalPersonKey, int page, int pageSize) {
+        logger.info("OrganizationService.listOrganizations - Starting");
+        var organizations = organizationRepository.findAll(legalPersonKey, page, pageSize);
+        logger.info("OrganizationService.listOrganizations - Successfully finished");
+        return organizations;
     }
 }

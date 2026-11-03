@@ -1,5 +1,6 @@
 package com.pulsepass.organizationservice.unit.infrastructure.jpa.repositories;
 
+import static com.pulsepass.organizationservice.domain.entities.OrganizationStatusEnum.PENDING;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -8,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.pulsepass.organizationservice.domain.entities.Organization;
 import com.pulsepass.organizationservice.domain.entities.OrganizationStatus;
+import com.pulsepass.organizationservice.domain.entities.OrganizationStatusEnum;
 import com.pulsepass.organizationservice.infrastructure.jpa.entities.OrganizationEntity;
 import com.pulsepass.organizationservice.infrastructure.jpa.repositories.JpaOrganizationRepository;
 import com.pulsepass.organizationservice.infrastructure.jpa.repositories.OrganizationRepositoryImpl;
@@ -19,6 +21,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
 class OrganizationRepositoryImplTest {
@@ -90,12 +93,14 @@ class OrganizationRepositoryImplTest {
         Page<OrganizationEntity> page = new PageImpl<>(List.of(OrganizationEntity.fromDomain(organization)));
         when(jpaRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 
-        List<Organization> result = repository.findAll("legal", 3, 10);
+        List<Organization> result = repository.findAll("legal", PENDING, "acme", "12345678000199", 3, 10);
 
         ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
         verify(jpaRepository).findAll(any(Specification.class), captor.capture());
         assertThat(captor.getValue().getPageNumber()).isEqualTo(2);
         assertThat(captor.getValue().getPageSize()).isEqualTo(10);
+        assertThat(captor.getValue().getSort()).containsExactly(
+                Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
         assertThat(result).extracting(Organization::getLegalPersonKey).containsExactly("legal");
     }
 
@@ -105,6 +110,6 @@ class OrganizationRepositoryImplTest {
         when(jpaRepository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<OrganizationEntity>(List.of()));
 
-        assertThat(repository.findAll("legal", 1, 30)).isEmpty();
+        assertThat(repository.findAll("legal", null, null, null, 1, 30)).isEmpty();
     }
 }

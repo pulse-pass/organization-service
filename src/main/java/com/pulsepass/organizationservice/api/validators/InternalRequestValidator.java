@@ -2,6 +2,7 @@ package com.pulsepass.organizationservice.api.validators;
 
 import com.pulsepass.organizationservice.domain.exceptions.MissingSelectedAgentKeyException;
 import com.pulsepass.organizationservice.domain.exceptions.UnauthorizedInternalRequestException;
+import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,15 +19,22 @@ public class InternalRequestValidator {
         this.internalToken = internalToken;
     }
 
-    private boolean isValid(String token) {
-        return internalToken.equals(token);
+    private boolean hasAdminRole(String roles) {
+        if (roles == null) {
+            return false;
+        }
+        return Arrays.stream(roles.split(",")).map(String::trim).anyMatch("admin"::equals);
     }
 
-    public void validateInternalToken(String token) {
-        if (!isValid(token)) {
-            logger.warn("InternalRequestValidator.validateInternalToken - Missing or invalid internal token");
-            throw new UnauthorizedInternalRequestException();
+    public void validateInternalTokenOrAdmin(String token, String roles) {
+        if (internalToken.equals(token)) {
+            return;
         }
+        if (hasAdminRole(roles)) {
+            return;
+        }
+        logger.warn("InternalRequestValidator.validateInternalTokenOrAdmin - Missing or invalid internal token");
+        throw new UnauthorizedInternalRequestException();
     }
 
     public void validateSelectedAgentKey(String selectedAgentKey) {

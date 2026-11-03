@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS organization.organization (
     CONSTRAINT organization_key_unique UNIQUE (organization_key),
     CONSTRAINT organization_legal_person_key_unique UNIQUE (legal_person_key),
     CONSTRAINT organization_document_number_unique UNIQUE (document_number),
+    INDEX organization_name_index (name),
     CONSTRAINT fk1_organization FOREIGN KEY (organization_rejection_reason_id)
         REFERENCES organization.organization_rejection_reason (id),
     CONSTRAINT fk2_organization FOREIGN KEY (organization_status_id)

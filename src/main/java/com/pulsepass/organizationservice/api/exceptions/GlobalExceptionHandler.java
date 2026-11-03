@@ -16,6 +16,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -28,10 +29,10 @@ public class GlobalExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    private static final Map<Class<? extends DomainException>, HttpStatus> STATUS_MAP = Map.of(
-            OrganizationAlreadyExistsException.class, HttpStatus.CONFLICT,
-            UnauthorizedInternalRequestException.class, HttpStatus.UNAUTHORIZED,
-            MissingSelectedAgentKeyException.class, HttpStatus.UNAUTHORIZED
+    private static final Map<Class<? extends DomainException>, HttpStatus> STATUS_MAP = Map.ofEntries(
+            Map.entry(OrganizationAlreadyExistsException.class, HttpStatus.CONFLICT),
+            Map.entry(UnauthorizedInternalRequestException.class, HttpStatus.UNAUTHORIZED),
+            Map.entry(MissingSelectedAgentKeyException.class, HttpStatus.UNAUTHORIZED)
     );
 
     private final MessageSource messageSource;
@@ -109,6 +110,18 @@ public class GlobalExceptionHandler {
                 .toList();
         logger.warn(
                 "GlobalExceptionHandler.handleInvalidParameterValue - Request parameter has an invalid value {}",
+                Map.of("extra_fields", extraFields)
+        );
+        return build(HttpStatus.BAD_REQUEST, "error.bad_request", "GEN00400", extraFields);
+    }
+
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ErrorResponse> handleMissingHeader(MissingRequestHeaderException ex) {
+        List<ExtraFieldErrorResponse> extraFields = List.of(
+                new ExtraFieldErrorResponse(ex.getHeaderName(), "REQUIRED")
+        );
+        logger.warn(
+                "GlobalExceptionHandler.handleMissingHeader - Required header is missing {}",
                 Map.of("extra_fields", extraFields)
         );
         return build(HttpStatus.BAD_REQUEST, "error.bad_request", "GEN00400", extraFields);

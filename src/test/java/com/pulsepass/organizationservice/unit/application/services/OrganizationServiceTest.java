@@ -1,5 +1,6 @@
 package com.pulsepass.organizationservice.unit.application.services;
 
+import static com.pulsepass.organizationservice.domain.entities.OrganizationStatusEnum.PENDING;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -15,6 +16,7 @@ import com.pulsepass.organizationservice.domain.UnitOfWork;
 import com.pulsepass.organizationservice.domain.entities.Organization;
 import com.pulsepass.organizationservice.domain.entities.OrganizationHistory;
 import com.pulsepass.organizationservice.domain.entities.OrganizationStatus;
+import com.pulsepass.organizationservice.domain.entities.OrganizationStatusEnum;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationAlreadyExistsException;
 import com.pulsepass.organizationservice.domain.repositories.OrganizationHistoryRepository;
 import com.pulsepass.organizationservice.domain.repositories.OrganizationRepository;
@@ -214,19 +216,40 @@ class OrganizationServiceTest {
     @Test
     void listOrganizations_existingOrganizations_returnsRepositoryResult() {
         Organization organization = new Organization("org", LEGAL_PERSON_KEY, DOCUMENT_NUMBER, NAME, pendingStatus);
-        when(organizationRepository.findAll(LEGAL_PERSON_KEY, 2, 5)).thenReturn(List.of(organization));
+        when(organizationRepository.findAll(LEGAL_PERSON_KEY, null, null, null, 2, 5))
+                .thenReturn(List.of(organization));
 
         List<Organization> result = service.listOrganizations(LEGAL_PERSON_KEY, 2, 5);
 
         assertThat(result).containsExactly(organization);
-        verify(organizationRepository).findAll(LEGAL_PERSON_KEY, 2, 5);
+        verify(organizationRepository).findAll(LEGAL_PERSON_KEY, null, null, null, 2, 5);
         verifyNoInteractions(unitOfWork);
     }
 
     @Test
     void listOrganizations_noOrganizations_returnsEmptyList() {
-        when(organizationRepository.findAll(LEGAL_PERSON_KEY, 1, 30)).thenReturn(List.of());
+        when(organizationRepository.findAll(LEGAL_PERSON_KEY, null, null, null, 1, 30)).thenReturn(List.of());
 
         assertThat(service.listOrganizations(LEGAL_PERSON_KEY, 1, 30)).isEmpty();
+    }
+
+    @Test
+    void listInternalOrganizations_filtersGiven_returnsRepositoryResultWithoutLegalPersonKey() {
+        Organization organization = new Organization("org", LEGAL_PERSON_KEY, DOCUMENT_NUMBER, NAME, pendingStatus);
+        when(organizationRepository.findAll(null, PENDING, "acme", "12345678000199", 2, 5))
+                .thenReturn(List.of(organization));
+
+        List<Organization> result = service.listInternalOrganizations(PENDING, "acme", "12345678000199", 2, 5);
+
+        assertThat(result).containsExactly(organization);
+        verify(organizationRepository).findAll(null, PENDING, "acme", "12345678000199", 2, 5);
+        verifyNoInteractions(unitOfWork);
+    }
+
+    @Test
+    void listInternalOrganizations_noFilters_returnsEmptyList() {
+        when(organizationRepository.findAll(null, null, null, null, 1, 30)).thenReturn(List.of());
+
+        assertThat(service.listInternalOrganizations(null, null, null, 1, 30)).isEmpty();
     }
 }

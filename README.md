@@ -19,7 +19,7 @@ Modo `development`: sobe só a API (container `organization-service-api`, projet
 
 Quem já tem um `infrastructure/.env` de uma versão anterior deve apagá-lo para que o script o recrie a partir do `.env.example`. Usuário, senha e schema do `.env` não podem conter aspas nem barra invertida, pois são interpolados no SQL do modo `development`.
 
-Os dois modos podem rodar ao mesmo tempo. A rota interna `POST /organization/internal/organizations` exige o header `internal-token` com o valor de `INTERNAL_TOKEN`, que é o mesmo token para todas as aplicações do PulsePass.
+Os dois modos podem rodar ao mesmo tempo. As rotas internas (`POST /organization/internal/organizations` e `GET /organization/internal/organizations`) exigem o header `internal-token` com o valor de `INTERNAL_TOKEN`, que é o mesmo token para todas as aplicações do PulsePass, ou o header `selected-user-roles` com o papel `admin`, enviado pelo `backoffice-gateway` quando o administrador as acessa.
 
 ## Lint e testes
 

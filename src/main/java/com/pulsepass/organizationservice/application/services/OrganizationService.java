@@ -81,8 +81,17 @@ public class OrganizationService {
 
     public List<Organization> listOrganizations(String legalPersonKey, int page, int pageSize) {
         logger.info("OrganizationService.listOrganizations - Starting");
-        var organizations = organizationRepository.findAll(legalPersonKey, page, pageSize);
+        var organizations = organizationRepository.findAll(legalPersonKey, null, null, null, page, pageSize);
         logger.info("OrganizationService.listOrganizations - Successfully finished");
+        return organizations;
+    }
+
+    public List<Organization> listInternalOrganizations(
+            OrganizationStatusEnum organizationStatus, String name, String documentNumber, int page, int pageSize) {
+        logger.info("OrganizationService.listInternalOrganizations - Starting");
+        var organizations = organizationRepository.findAll(
+                null, organizationStatus, name, documentNumber, page, pageSize);
+        logger.info("OrganizationService.listInternalOrganizations - Successfully finished");
         return organizations;
     }
 }

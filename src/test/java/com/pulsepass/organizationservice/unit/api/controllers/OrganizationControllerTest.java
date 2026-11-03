@@ -1,11 +1,13 @@
 package com.pulsepass.organizationservice.unit.api.controllers;
 
+import static com.pulsepass.organizationservice.domain.entities.OrganizationStatusEnum.PENDING;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -17,6 +19,7 @@ import com.pulsepass.organizationservice.application.services.OrganizationServic
 import com.pulsepass.organizationservice.domain.entities.Organization;
 import com.pulsepass.organizationservice.domain.entities.OrganizationRejectionReason;
 import com.pulsepass.organizationservice.domain.entities.OrganizationStatus;
+import com.pulsepass.organizationservice.domain.entities.OrganizationStatusEnum;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationAlreadyExistsException;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -46,7 +49,7 @@ import org.springframework.test.web.servlet.MockMvc;
 })
 class OrganizationControllerTest {
 
-    private static final String URL = "/organization/internal/organizations";
+    private static final String INTERNAL_URL = "/organization/internal/organizations";
     private static final String LIST_URL = "/organization/organizations";
     private static final String TOKEN = "test-token";
     private static final String LEGAL_PERSON_KEY = "7b0f5e6a-1c3d-4e8f-9a2b-0d1e2f3a4b5c";
@@ -93,8 +96,9 @@ class OrganizationControllerTest {
         when(organizationService.createOrganization(any(CreateOrganizationDTO.class)))
                 .thenReturn(pendingOrganization());
 
-        mockMvc.perform(post(URL)
+        mockMvc.perform(post(INTERNAL_URL)
                         .header("internal-token", TOKEN)
+                        .header("selected-user-roles", "organizer")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body(LEGAL_PERSON_KEY, DOCUMENT_NUMBER, "Acme Events")))
                 .andExpect(status().isCreated())
@@ -132,7 +136,7 @@ class OrganizationControllerTest {
     @MethodSource("invalidBodies")
     void createOrganization_invalidBody_returns400WithBadRequestCode(String scenario, String content)
             throws Exception {
-        mockMvc.perform(post(URL)
+        mockMvc.perform(post(INTERNAL_URL)
                         .header("internal-token", TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(content))
@@ -148,7 +152,7 @@ class OrganizationControllerTest {
         when(organizationService.createOrganization(any(CreateOrganizationDTO.class)))
                 .thenReturn(pendingOrganization());
 
-        mockMvc.perform(post(URL)
+        mockMvc.perform(post(INTERNAL_URL)
                         .header("internal-token", TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body(LEGAL_PERSON_KEY.toUpperCase(), DOCUMENT_NUMBER, "Acme Events")))
@@ -160,7 +164,7 @@ class OrganizationControllerTest {
         when(organizationService.createOrganization(any(CreateOrganizationDTO.class)))
                 .thenReturn(pendingOrganization());
 
-        mockMvc.perform(post(URL)
+        mockMvc.perform(post(INTERNAL_URL)
                         .header("internal-token", TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body(LEGAL_PERSON_KEY, DOCUMENT_NUMBER, "a".repeat(255))))
@@ -172,7 +176,7 @@ class OrganizationControllerTest {
         when(organizationService.createOrganization(any(CreateOrganizationDTO.class)))
                 .thenThrow(new OrganizationAlreadyExistsException());
 
-        mockMvc.perform(post(URL)
+        mockMvc.perform(post(INTERNAL_URL)
                         .header("internal-token", TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body(LEGAL_PERSON_KEY, DOCUMENT_NUMBER, "Acme Events")))
@@ -182,8 +186,34 @@ class OrganizationControllerTest {
     }
 
     @Test
+    void createOrganization_adminRoleWithoutToken_returns201() throws Exception {
+        when(organizationService.createOrganization(any(CreateOrganizationDTO.class)))
+                .thenReturn(pendingOrganization());
+
+        mockMvc.perform(post(INTERNAL_URL)
+                        .header("selected-user-roles", "admin")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body(LEGAL_PERSON_KEY, DOCUMENT_NUMBER, "Acme Events")))
+                .andExpect(status().isCreated());
+
+        verify(internalRequestValidator).validateInternalTokenOrAdmin(null, "admin");
+    }
+
+    @Test
+    void createOrganization_organizerRoleWithoutToken_returns401() throws Exception {
+        mockMvc.perform(post(INTERNAL_URL)
+                        .header("selected-user-roles", "organizer")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body(LEGAL_PERSON_KEY, DOCUMENT_NUMBER, "Acme Events")))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("GEN00401"));
+
+        verifyNoInteractions(organizationService);
+    }
+
+    @Test
     void createOrganization_missingTokenHeader_returns401() throws Exception {
-        mockMvc.perform(post(URL)
+        mockMvc.perform(post(INTERNAL_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body(LEGAL_PERSON_KEY, DOCUMENT_NUMBER, "Acme Events")))
                 .andExpect(status().isUnauthorized())
@@ -194,7 +224,7 @@ class OrganizationControllerTest {
 
     @Test
     void createOrganization_wrongToken_returns401() throws Exception {
-        mockMvc.perform(post(URL)
+        mockMvc.perform(post(INTERNAL_URL)
                         .header("internal-token", "wrong")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body(LEGAL_PERSON_KEY, DOCUMENT_NUMBER, "Acme Events")))
@@ -213,8 +243,8 @@ class OrganizationControllerTest {
     }
 
     @Test
-    void createRoute_withGet_returns405WithGen00405() throws Exception {
-        mockMvc.perform(get(URL).header("internal-token", TOKEN))
+    void createRoute_withPut_returns405WithGen00405() throws Exception {
+        mockMvc.perform(put(INTERNAL_URL).header("internal-token", TOKEN))
                 .andExpect(status().isMethodNotAllowed())
                 .andExpect(jsonPath("$.code").value("GEN00405"))
                 .andExpect(jsonPath("$.title").value("Method Not Allowed"));
@@ -222,7 +252,7 @@ class OrganizationControllerTest {
 
     @Test
     void createRoute_withTextPlain_returns415WithGen00415() throws Exception {
-        mockMvc.perform(post(URL).header("internal-token", TOKEN)
+        mockMvc.perform(post(INTERNAL_URL).header("internal-token", TOKEN)
                         .contentType(MediaType.TEXT_PLAIN)
                         .content("plain"))
                 .andExpect(status().isUnsupportedMediaType())
@@ -244,12 +274,12 @@ class OrganizationControllerTest {
                 .andExpect(jsonPath("$.data[0].legal_person_key").value(LEGAL_PERSON_KEY))
                 .andExpect(jsonPath("$.data[0].name").value("Acme Events"))
                 .andExpect(jsonPath("$.data[0].document_number").value(DOCUMENT_NUMBER))
-                .andExpect(jsonPath("$.data[0].status").value("PENDING"))
-                .andExpect(jsonPath("$.data[0].rejection_reason").value(org.hamcrest.Matchers.nullValue()))
-                .andExpect(jsonPath("$.data[0].rejection_reason_description")
+                .andExpect(jsonPath("$.data[0].organization_status").value("PENDING"))
+                .andExpect(jsonPath("$.data[0].organization_rejection_reason").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.data[0].organization_rejection_reason_description")
                         .value(org.hamcrest.Matchers.nullValue()))
-                .andExpect(jsonPath("$.data[0].created_at").value("2026-10-09T14:12:00"))
-                .andExpect(jsonPath("$.data[0].updated_at").value("2026-10-09T14:13:00"))
+                .andExpect(jsonPath("$.data[0].created_at").value("2026-10-09T14:12:00Z"))
+                .andExpect(jsonPath("$.data[0].updated_at").value("2026-10-09T14:13:00Z"))
                 .andExpect(jsonPath("$.pagination.page").value(1))
                 .andExpect(jsonPath("$.pagination.page_size").value(30));
     }
@@ -260,13 +290,15 @@ class OrganizationControllerTest {
         organization.setOrganizationStatus(new OrganizationStatus(3L, "REJECTED", null));
         organization.setOrganizationRejectionReason(
                 new OrganizationRejectionReason(1L, "INACTIVE_DOCUMENT", "Inactive CNPJ", null));
+        organization.setCreatedAt(LocalDateTime.of(2026, 10, 9, 14, 12));
+        organization.setUpdatedAt(LocalDateTime.of(2026, 10, 9, 14, 13));
         when(organizationService.listOrganizations(LEGAL_PERSON_KEY, 1, 30)).thenReturn(List.of(organization));
 
         mockMvc.perform(get(LIST_URL).header("selected-agent-key", LEGAL_PERSON_KEY))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].status").value("REJECTED"))
-                .andExpect(jsonPath("$.data[0].rejection_reason").value("INACTIVE_DOCUMENT"))
-                .andExpect(jsonPath("$.data[0].rejection_reason_description").value("Inactive CNPJ"));
+                .andExpect(jsonPath("$.data[0].organization_status").value("REJECTED"))
+                .andExpect(jsonPath("$.data[0].organization_rejection_reason").value("INACTIVE_DOCUMENT"))
+                .andExpect(jsonPath("$.data[0].organization_rejection_reason_description").value("Inactive CNPJ"));
     }
 
     @Test
@@ -369,5 +401,92 @@ class OrganizationControllerTest {
                 .andExpect(status().isOk());
 
         verify(organizationService).listOrganizations(LEGAL_PERSON_KEY, 1, 100);
+    }
+
+    @Test
+    void listInternalOrganizations_validToken_returns200WithItemAndPagination() throws Exception {
+        Organization organization = pendingOrganization();
+        organization.setCreatedAt(LocalDateTime.of(2026, 10, 9, 14, 12));
+        organization.setUpdatedAt(LocalDateTime.of(2026, 10, 9, 14, 13));
+        when(organizationService.listInternalOrganizations(null, null, null, 1, 30)).thenReturn(List.of(organization));
+
+        mockMvc.perform(get(INTERNAL_URL).header("internal-token", TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].organization_key").value("11111111-2222-4333-8444-555555555555"))
+                .andExpect(jsonPath("$.data[0].legal_person_key").value(LEGAL_PERSON_KEY))
+                .andExpect(jsonPath("$.data[0].name").value("Acme Events"))
+                .andExpect(jsonPath("$.data[0].document_number").value(DOCUMENT_NUMBER))
+                .andExpect(jsonPath("$.data[0].organization_status").value("PENDING"))
+                .andExpect(jsonPath("$.data[0].created_at").value("2026-10-09T14:12:00Z"))
+                .andExpect(jsonPath("$.data[0].updated_at").value("2026-10-09T14:13:00Z"))
+                .andExpect(jsonPath("$.pagination.page").value(1))
+                .andExpect(jsonPath("$.pagination.page_size").value(30));
+
+        verify(internalRequestValidator).validateInternalTokenOrAdmin(TOKEN, null);
+    }
+
+    @Test
+    void listInternalOrganizations_adminRoleWithoutToken_returns200() throws Exception {
+        when(organizationService.listInternalOrganizations(null, null, null, 1, 30)).thenReturn(List.of());
+
+        mockMvc.perform(get(INTERNAL_URL).header("selected-user-roles", "admin"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(0));
+
+        verify(internalRequestValidator).validateInternalTokenOrAdmin(null, "admin");
+    }
+
+    @Test
+    void listInternalOrganizations_filtersAndPage_forwardsThemToService() throws Exception {
+        when(organizationService.listInternalOrganizations(PENDING, "acme", "12345678000199", 2, 5))
+                .thenReturn(List.of());
+
+        mockMvc.perform(get(INTERNAL_URL)
+                        .header("internal-token", TOKEN)
+                        .param("organization_status", "PENDING")
+                        .param("name", "acme")
+                        .param("document_number", "12345678000199")
+                        .param("page", "2")
+                        .param("page_size", "5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pagination.page").value(2))
+                .andExpect(jsonPath("$.pagination.page_size").value(5));
+
+        verify(organizationService).listInternalOrganizations(PENDING, "acme", "12345678000199", 2, 5);
+    }
+
+    @Test
+    void listInternalOrganizations_noTokenAndNoAdminRole_returns401WithGen00401() throws Exception {
+        mockMvc.perform(get(INTERNAL_URL).header("selected-user-roles", "organizer"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("GEN00401"));
+
+        verify(internalRequestValidator).validateInternalTokenOrAdmin(null, "organizer");
+        verifyNoInteractions(organizationService);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"page,0,page", "page_size,0,page_size", "page_size,101,page_size"})
+    void listInternalOrganizations_outOfRangeParameter_returns400WithParameterField(
+            String name, String value, String expectedField) throws Exception {
+        mockMvc.perform(get(INTERNAL_URL).header("internal-token", TOKEN).param(name, value))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("GEN00400"))
+                .andExpect(jsonPath("$.extra_fields[0].field").value(expectedField))
+                .andExpect(jsonPath("$.extra_fields[0].error").value("SIZE"));
+
+        verifyNoInteractions(organizationService);
+    }
+
+    @Test
+    void listInternalOrganizations_unknownOrganizationStatus_returns400WithInvalidFormat() throws Exception {
+        mockMvc.perform(get(INTERNAL_URL).header("internal-token", TOKEN).param("organization_status", "FOO"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("GEN00400"))
+                .andExpect(jsonPath("$.extra_fields[0].field").value("organization_status"))
+                .andExpect(jsonPath("$.extra_fields[0].error").value("INVALID_FORMAT"));
+
+        verifyNoInteractions(organizationService);
     }
 }

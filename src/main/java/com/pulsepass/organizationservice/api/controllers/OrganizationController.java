@@ -1,12 +1,14 @@
 package com.pulsepass.organizationservice.api.controllers;
 
-import com.pulsepass.organizationservice.api.responses.CreateOrganizationResponse;
+import com.pulsepass.organizationservice.api.responses.CreateInternalOrganizationResponse;
+import com.pulsepass.organizationservice.api.responses.ListInternalOrganizationsResponse;
 import com.pulsepass.organizationservice.api.responses.ListOrganizationsResponse;
 import com.pulsepass.organizationservice.api.responses.pagination.PaginatedResponse;
 import com.pulsepass.organizationservice.api.responses.pagination.PaginationResponse;
 import com.pulsepass.organizationservice.api.schemas.CreateOrganizationSchema;
 import com.pulsepass.organizationservice.api.validators.InternalRequestValidator;
 import com.pulsepass.organizationservice.application.services.OrganizationService;
+import com.pulsepass.organizationservice.domain.entities.OrganizationStatusEnum;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -33,13 +35,14 @@ public class OrganizationController {
     }
 
     @PostMapping("/organization/internal/organizations")
-    public ResponseEntity<CreateOrganizationResponse> createOrganization(
+    public ResponseEntity<CreateInternalOrganizationResponse> createOrganization(
             @RequestHeader(value = "internal-token", required = false) String internalToken,
+            @RequestHeader(value = "selected-user-roles", required = false) String selectedUserRoles,
             @Valid @RequestBody CreateOrganizationSchema request
     ) {
-        internalRequestValidator.validateInternalToken(internalToken);
+        internalRequestValidator.validateInternalTokenOrAdmin(internalToken, selectedUserRoles);
         var organization = organizationService.createOrganization(request.toDTO());
-        return ResponseEntity.status(201).body(CreateOrganizationResponse.fromEntity(organization));
+        return ResponseEntity.status(201).body(CreateInternalOrganizationResponse.fromEntity(organization));
     }
 
     @GetMapping("/organization/organizations")
@@ -51,6 +54,23 @@ public class OrganizationController {
         internalRequestValidator.validateSelectedAgentKey(selectedAgentKey);
         var organizations = organizationService.listOrganizations(selectedAgentKey, page, pageSize);
         var data = organizations.stream().map(ListOrganizationsResponse::fromEntity).toList();
+        return ResponseEntity.ok(new PaginatedResponse<>(data, new PaginationResponse(page, pageSize)));
+    }
+
+    @GetMapping("/organization/internal/organizations")
+    public ResponseEntity<PaginatedResponse<ListInternalOrganizationsResponse>> listInternalOrganizations(
+            @RequestHeader(value = "internal-token", required = false) String internalToken,
+            @RequestHeader(value = "selected-user-roles", required = false) String selectedUserRoles,
+            @RequestParam(name = "organization_status", required = false) OrganizationStatusEnum organizationStatus,
+            @RequestParam(name = "name", required = false) String name,
+            @RequestParam(name = "document_number", required = false) String documentNumber,
+            @RequestParam(name = "page", defaultValue = "1") @Min(1) Integer page,
+            @RequestParam(name = "page_size", defaultValue = "30") @Min(1) @Max(100) Integer pageSize
+    ) {
+        internalRequestValidator.validateInternalTokenOrAdmin(internalToken, selectedUserRoles);
+        var organizations = organizationService.listInternalOrganizations(
+                organizationStatus, name, documentNumber, page, pageSize);
+        var data = organizations.stream().map(ListInternalOrganizationsResponse::fromEntity).toList();
         return ResponseEntity.ok(new PaginatedResponse<>(data, new PaginationResponse(page, pageSize)));
     }
 }

@@ -36,11 +36,11 @@ class TestGetOrganizations extends BaseIntegrationTest {
         assertThat(response.jsonPath().getString("data[0].legal_person_key")).isEqualTo(legalPersonKey);
         assertThat(response.jsonPath().getString("data[0].name")).isEqualTo(name);
         assertThat(response.jsonPath().getString("data[0].document_number")).isEqualTo(documentNumber);
-        assertThat(response.jsonPath().getString("data[0].status")).isEqualTo("PENDING");
-        assertThat(response.jsonPath().getString("data[0].rejection_reason")).isNull();
-        assertThat(response.jsonPath().getString("data[0].rejection_reason_description")).isNull();
-        assertThat(response.jsonPath().getString("data[0].created_at")).isNotBlank();
-        assertThat(response.jsonPath().getString("data[0].updated_at")).isNotBlank();
+        assertThat(response.jsonPath().getString("data[0].organization_status")).isEqualTo("PENDING");
+        assertThat(response.jsonPath().getString("data[0].organization_rejection_reason")).isNull();
+        assertThat(response.jsonPath().getString("data[0].organization_rejection_reason_description")).isNull();
+        assertThat(response.jsonPath().getString("data[0].created_at")).endsWith("Z");
+        assertThat(response.jsonPath().getString("data[0].updated_at")).endsWith("Z");
         assertThat(response.jsonPath().getInt("pagination.page")).isEqualTo(1);
         assertThat(response.jsonPath().getInt("pagination.page_size")).isEqualTo(30);
     }

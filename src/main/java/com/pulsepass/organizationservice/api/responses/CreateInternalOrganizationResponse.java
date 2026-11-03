@@ -2,7 +2,7 @@ package com.pulsepass.organizationservice.api.responses;
 
 import com.pulsepass.organizationservice.domain.entities.Organization;
 
-public record CreateOrganizationResponse(
+public record CreateInternalOrganizationResponse(
         String organizationKey,
         String legalPersonKey,
         String documentNumber,
@@ -10,8 +10,8 @@ public record CreateOrganizationResponse(
         String organizationStatus
 ) {
 
-    public static CreateOrganizationResponse fromEntity(Organization organization) {
-        return new CreateOrganizationResponse(
+    public static CreateInternalOrganizationResponse fromEntity(Organization organization) {
+        return new CreateInternalOrganizationResponse(
                 organization.getOrganizationKey(),
                 organization.getLegalPersonKey(),
                 organization.getDocumentNumber(),

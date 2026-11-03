@@ -358,11 +358,11 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
     }
 
     @Test
-    void createOrganization_getOnInternalRoute_returnsMethodNotAllowed() {
+    void createOrganization_putOnInternalRoute_returnsMethodNotAllowed() {
         Response response = given()
                     .header(INTERNAL_TOKEN_HEADER, internalToken)
                 .when()
-                    .get(POST_ORGANIZATION)
+                    .put(POST_ORGANIZATION)
                 .then()
                     .extract().response();
 
@@ -436,6 +436,44 @@ class TestPostCreateOrganization extends BaseIntegrationTest {
                 .then()
                     .extract().response();
 
+        assertThat(response.statusCode()).isEqualTo(401);
+        assertThat(response.jsonPath().getString("code")).isEqualTo("GEN00401");
+        assertThat(response.jsonPath().getList("extra_fields")).isEmpty();
+    }
+
+    @Test
+    void createOrganization_adminRoleWithoutToken_returnsCreated() {
+        Map<String, Object> payload = Map.of(
+                "legal_person_key", UUID.randomUUID().toString(),
+                "document_number", CnpjGenerator.generateCnpj(),
+                "name", "Producoes Exemplo Ltda");
+
+        Response response = given()
+                    .header("selected-user-roles", "admin")
+                    .contentType(ContentType.JSON)
+                    .body(payload)
+                .when()
+                    .post(POST_ORGANIZATION)
+                .then()
+                    .extract().response();
+        assertThat(response.statusCode()).isEqualTo(201);
+    }
+
+    @Test
+    void createOrganization_organizerRoleWithoutToken_returnsUnauthorized() {
+        Map<String, Object> payload = Map.of(
+                "legal_person_key", UUID.randomUUID().toString(),
+                "document_number", CnpjGenerator.generateCnpj(),
+                "name", "Producoes Exemplo Ltda");
+
+        Response response = given()
+                    .header("selected-user-roles", "organizer")
+                    .contentType(ContentType.JSON)
+                    .body(payload)
+                .when()
+                    .post(POST_ORGANIZATION)
+                .then()
+                    .extract().response();
         assertThat(response.statusCode()).isEqualTo(401);
         assertThat(response.jsonPath().getString("code")).isEqualTo("GEN00401");
         assertThat(response.jsonPath().getList("extra_fields")).isEmpty();

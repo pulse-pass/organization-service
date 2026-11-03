@@ -13,51 +13,54 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class InternalRequestValidatorTest {
 
-    private static final String TOKEN = "secret-token";
+    private final InternalRequestValidator validator = new InternalRequestValidator("secret-token");
 
     @Test
-    void validateInternalToken_matchingToken_doesNotThrow() {
-        var validator = new InternalRequestValidator(TOKEN);
-
-        assertThatCode(() -> validator.validateInternalToken(TOKEN)).doesNotThrowAnyException();
+    void validateInternalTokenOrAdmin_matchingTokenWithoutRoles_doesNotThrow() {
+        assertThatCode(() -> validator.validateInternalTokenOrAdmin("secret-token", null))
+                .doesNotThrowAnyException();
     }
 
     @Test
-    void validateInternalToken_nullToken_throwsUnauthorized() {
-        var validator = new InternalRequestValidator(TOKEN);
+    void validateInternalTokenOrAdmin_matchingTokenWithOrganizerRole_doesNotThrow() {
+        assertThatCode(() -> validator.validateInternalTokenOrAdmin("secret-token", "organizer"))
+                .doesNotThrowAnyException();
+    }
 
-        assertThatThrownBy(() -> validator.validateInternalToken(null))
+    @ParameterizedTest
+    @ValueSource(strings = {"admin", "organizer,admin", "organizer , admin ", " admin"})
+    void validateInternalTokenOrAdmin_adminRoleWithoutToken_doesNotThrow(String roles) {
+        assertThatCode(() -> validator.validateInternalTokenOrAdmin(null, roles)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void validateInternalTokenOrAdmin_wrongTokenAndAdminRole_doesNotThrow() {
+        assertThatCode(() -> validator.validateInternalTokenOrAdmin("wrong", "admin")).doesNotThrowAnyException();
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"", "organizer", "buyer,organizer", "administrator", "superadmin"})
+    void validateInternalTokenOrAdmin_noTokenAndNoAdminRole_throwsUnauthorized(String roles) {
+        assertThatThrownBy(() -> validator.validateInternalTokenOrAdmin(null, roles))
+                .isInstanceOf(UnauthorizedInternalRequestException.class);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "wrong", "secret"})
+    void validateInternalTokenOrAdmin_invalidTokenAndNoRoles_throwsUnauthorized(String token) {
+        assertThatThrownBy(() -> validator.validateInternalTokenOrAdmin(token, null))
                 .isInstanceOf(UnauthorizedInternalRequestException.class);
     }
 
     @Test
-    void validateInternalToken_emptyToken_throwsUnauthorized() {
-        var validator = new InternalRequestValidator(TOKEN);
-
-        assertThatThrownBy(() -> validator.validateInternalToken(""))
-                .isInstanceOf(UnauthorizedInternalRequestException.class);
-    }
-
-    @Test
-    void validateInternalToken_differentToken_throwsUnauthorized() {
-        var validator = new InternalRequestValidator(TOKEN);
-
-        assertThatThrownBy(() -> validator.validateInternalToken("other"))
-                .isInstanceOf(UnauthorizedInternalRequestException.class);
-    }
-
-    @Test
-    void validateInternalToken_prefixOfToken_throwsUnauthorized() {
-        var validator = new InternalRequestValidator(TOKEN);
-
-        assertThatThrownBy(() -> validator.validateInternalToken("secret"))
+    void validateInternalTokenOrAdmin_wrongTokenAndOrganizerRole_throwsUnauthorized() {
+        assertThatThrownBy(() -> validator.validateInternalTokenOrAdmin("wrong", "organizer"))
                 .isInstanceOf(UnauthorizedInternalRequestException.class);
     }
 
     @Test
     void validateSelectedAgentKey_validKey_doesNotThrow() {
-        var validator = new InternalRequestValidator(TOKEN);
-
         assertThatCode(() -> validator.validateSelectedAgentKey("7b0f5e6a-1c3d-4e8f-9a2b-0d1e2f3a4b5c"))
                 .doesNotThrowAnyException();
     }
@@ -66,8 +69,6 @@ class InternalRequestValidatorTest {
     @NullSource
     @ValueSource(strings = {"", "  "})
     void validateSelectedAgentKey_missingOrBlankKey_throwsMissingSelectedAgentKey(String selectedAgentKey) {
-        var validator = new InternalRequestValidator(TOKEN);
-
         assertThatThrownBy(() -> validator.validateSelectedAgentKey(selectedAgentKey))
                 .isInstanceOf(MissingSelectedAgentKeyException.class);
     }

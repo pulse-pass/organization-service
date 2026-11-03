@@ -31,6 +31,7 @@ import org.springframework.validation.method.ParameterValidationResult;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -170,6 +171,22 @@ class GlobalExceptionHandlerTest {
                 "bad request",
                 "GEN00400",
                 List.of(new ExtraFieldErrorResponse("body", "INVALID_FORMAT"))
+        ));
+    }
+
+    @Test
+    void handleMissingHeader_headerAbsent_returns400WithHeaderField() throws Exception {
+        var parameter = new MethodParameter(getClass().getDeclaredMethod("dummy", String.class), 0);
+        var exception = new MissingRequestHeaderException("selected-user-key", parameter);
+
+        var response = handler.handleMissingHeader(exception);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isEqualTo(new ErrorResponse(
+                "Bad Request",
+                "bad request",
+                "GEN00400",
+                List.of(new ExtraFieldErrorResponse("selected-user-key", "REQUIRED"))
         ));
     }
 

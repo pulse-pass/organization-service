@@ -56,6 +56,22 @@ class OrganizationRepositoryImplTest {
     }
 
     @Test
+    void findForUpdateByOrganizationKey_existing_returnsMappedDomain() {
+        when(jpaRepository.findForUpdateByOrganizationKey("org"))
+                .thenReturn(Optional.of(OrganizationEntity.fromDomain(organization)));
+
+        assertThat(repository.findForUpdateByOrganizationKey("org")).get()
+                .extracting(Organization::getOrganizationKey).isEqualTo("org");
+    }
+
+    @Test
+    void findForUpdateByOrganizationKey_missing_returnsEmpty() {
+        when(jpaRepository.findForUpdateByOrganizationKey("x")).thenReturn(Optional.empty());
+
+        assertThat(repository.findForUpdateByOrganizationKey("x")).isEmpty();
+    }
+
+    @Test
     void findByLegalPersonKey_existing_returnsMappedDomain() {
         when(jpaRepository.findByLegalPersonKey("legal"))
                 .thenReturn(Optional.of(OrganizationEntity.fromDomain(organization)));

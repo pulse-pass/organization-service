@@ -11,14 +11,21 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.pulsepass.organizationservice.application.dtos.input.CreateOrganizationDTO;
+import com.pulsepass.organizationservice.application.dtos.input.UpdateOrganizationDTO;
 import com.pulsepass.organizationservice.application.services.OrganizationService;
 import com.pulsepass.organizationservice.domain.UnitOfWork;
 import com.pulsepass.organizationservice.domain.entities.Organization;
 import com.pulsepass.organizationservice.domain.entities.OrganizationHistory;
+import com.pulsepass.organizationservice.domain.entities.OrganizationRejectionReason;
+import com.pulsepass.organizationservice.domain.entities.OrganizationRejectionReasonEnum;
 import com.pulsepass.organizationservice.domain.entities.OrganizationStatus;
 import com.pulsepass.organizationservice.domain.entities.OrganizationStatusEnum;
+import com.pulsepass.organizationservice.domain.exceptions.InvalidOrganizationRejectionReasonException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationAlreadyExistsException;
+import com.pulsepass.organizationservice.domain.exceptions.OrganizationNotFoundException;
+import com.pulsepass.organizationservice.domain.exceptions.OrganizationStatusNotAllowedException;
 import com.pulsepass.organizationservice.domain.repositories.OrganizationHistoryRepository;
+import com.pulsepass.organizationservice.domain.repositories.OrganizationRejectionReasonRepository;
 import com.pulsepass.organizationservice.domain.repositories.OrganizationRepository;
 import com.pulsepass.organizationservice.domain.repositories.OrganizationStatusRepository;
 import java.math.BigDecimal;
@@ -27,6 +34,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -51,6 +60,9 @@ class OrganizationServiceTest {
     @Mock
     private OrganizationHistoryRepository organizationHistoryRepository;
 
+    @Mock
+    private OrganizationRejectionReasonRepository organizationRejectionReasonRepository;
+
     private OrganizationService service;
     private OrganizationStatus pendingStatus;
     private CreateOrganizationDTO dto;
@@ -58,7 +70,8 @@ class OrganizationServiceTest {
     @BeforeEach
     void setUp() {
         service = new OrganizationService(
-                unitOfWork, organizationRepository, organizationStatusRepository, organizationHistoryRepository);
+                unitOfWork, organizationRepository, organizationStatusRepository, organizationHistoryRepository,
+                organizationRejectionReasonRepository);
         pendingStatus = new OrganizationStatus(1L, "PENDING", null);
         dto = new CreateOrganizationDTO(LEGAL_PERSON_KEY, DOCUMENT_NUMBER, NAME);
     }
@@ -211,6 +224,242 @@ class OrganizationServiceTest {
         assertThatThrownBy(() -> service.createOrganization(dto)).isSameAs(failure);
 
         verify(unitOfWork, never()).commit();
+    }
+
+    private Organization organizationWithStatus(String enumerator) {
+        return new Organization(
+                1L, "org-key", LEGAL_PERSON_KEY, null, null, DOCUMENT_NUMBER, NAME, null, BigDecimal.ZERO,
+                null, new OrganizationStatus(1L, enumerator, null), null, null);
+    }
+
+    private void stubOrganization(String enumerator) {
+        when(organizationRepository.findForUpdateByOrganizationKey("org-key"))
+                .thenReturn(Optional.of(organizationWithStatus(enumerator)));
+    }
+
+    private void stubStatus(String enumerator) {
+        when(organizationStatusRepository.findByEnumerator(enumerator))
+                .thenReturn(Optional.of(new OrganizationStatus(2L, enumerator, null)));
+    }
+
+    private void stubRejectionReason() {
+        when(organizationRejectionReasonRepository.findByEnumerator("INACTIVE_DOCUMENT"))
+                .thenReturn(Optional.of(
+                        new OrganizationRejectionReason(1L, "INACTIVE_DOCUMENT", "Inactive CNPJ", null)));
+    }
+
+    @Test
+    void updateOrganization_approve_savesApprovedOrganizationWithNullReason() {
+        stubOrganization("PENDING");
+        stubStatus("APPROVED");
+        when(organizationRepository.save(any(Organization.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Organization result = service.updateOrganization(
+                "org-key", new UpdateOrganizationDTO(OrganizationStatusEnum.APPROVED, null));
+
+        assertThat(result.getOrganizationStatus().getEnumerator()).isEqualTo("APPROVED");
+        assertThat(result.getOrganizationRejectionReason()).isNull();
+        verifyNoInteractions(organizationRejectionReasonRepository);
+    }
+
+    @Test
+    void updateOrganization_rejectWithReason_savesRejectedOrganizationWithReason() {
+        stubOrganization("PENDING");
+        stubStatus("REJECTED");
+        stubRejectionReason();
+        when(organizationRepository.save(any(Organization.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Organization result = service.updateOrganization("org-key", new UpdateOrganizationDTO(
+                OrganizationStatusEnum.REJECTED, OrganizationRejectionReasonEnum.INACTIVE_DOCUMENT));
+
+        assertThat(result.getOrganizationStatus().getEnumerator()).isEqualTo("REJECTED");
+        assertThat(result.getOrganizationRejectionReason().getEnumerator()).isEqualTo("INACTIVE_DOCUMENT");
+    }
+
+    @Test
+    void updateOrganization_approve_savesHistoryWithOldAndNewStatusInsideTransaction() {
+        stubOrganization("PENDING");
+        stubStatus("APPROVED");
+        when(organizationRepository.save(any(Organization.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.updateOrganization("org-key", new UpdateOrganizationDTO(OrganizationStatusEnum.APPROVED, null));
+
+        ArgumentCaptor<OrganizationHistory> captor = ArgumentCaptor.forClass(OrganizationHistory.class);
+        var order = inOrder(unitOfWork, organizationRepository, organizationHistoryRepository);
+        order.verify(unitOfWork).begin();
+        order.verify(organizationRepository).findForUpdateByOrganizationKey("org-key");
+        order.verify(organizationRepository).save(any(Organization.class));
+        order.verify(organizationHistoryRepository).save(captor.capture());
+        order.verify(unitOfWork).commit();
+        verify(unitOfWork, never()).rollback();
+        assertThat(captor.getValue().getOldStatus().getEnumerator()).isEqualTo("PENDING");
+        assertThat(captor.getValue().getNewStatus().getEnumerator()).isEqualTo("APPROVED");
+        assertThat(captor.getValue().getHistoryData()).contains("\"organization_status\":\"APPROVED\"");
+    }
+
+    @Test
+    void updateOrganization_unknownKey_throwsNotFoundWithoutCommit() {
+        stubStatus("APPROVED");
+        when(organizationRepository.findForUpdateByOrganizationKey("org-key")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.updateOrganization(
+                "org-key", new UpdateOrganizationDTO(OrganizationStatusEnum.APPROVED, null)))
+                .isInstanceOf(OrganizationNotFoundException.class);
+
+        verify(unitOfWork).begin();
+        verify(unitOfWork, never()).commit();
+        verifyNoInteractions(organizationHistoryRepository);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"APPROVED", "REJECTED", "DELETED"})
+    void updateOrganization_notPending_throwsStatusNotAllowedWithoutCommit(String currentStatus) {
+        stubOrganization(currentStatus);
+        stubStatus("APPROVED");
+
+        assertThatThrownBy(() -> service.updateOrganization(
+                "org-key", new UpdateOrganizationDTO(OrganizationStatusEnum.APPROVED, null)))
+                .isInstanceOf(OrganizationStatusNotAllowedException.class);
+
+        verify(unitOfWork).begin();
+        verify(unitOfWork, never()).commit();
+        verify(organizationRepository, never()).save(any());
+    }
+
+    @Test
+    void updateOrganization_notPendingWithInvalidReason_throwsStatusNotAllowedFirst() {
+        stubOrganization("APPROVED");
+        stubStatus("REJECTED");
+
+        assertThatThrownBy(() -> service.updateOrganization(
+                "org-key", new UpdateOrganizationDTO(OrganizationStatusEnum.REJECTED, null)))
+                .isInstanceOf(OrganizationStatusNotAllowedException.class);
+    }
+
+    @Test
+    void updateOrganization_rejectWithoutReason_throwsInvalidReasonWithoutCommit() {
+        stubOrganization("PENDING");
+        stubStatus("REJECTED");
+
+        assertThatThrownBy(() -> service.updateOrganization(
+                "org-key", new UpdateOrganizationDTO(OrganizationStatusEnum.REJECTED, null)))
+                .isInstanceOf(InvalidOrganizationRejectionReasonException.class);
+
+        verify(unitOfWork).begin();
+        verify(unitOfWork, never()).commit();
+        verify(organizationRepository, never()).save(any());
+    }
+
+    @Test
+    void updateOrganization_approveWithReason_throwsInvalidReasonWithoutCommit() {
+        stubOrganization("PENDING");
+        stubStatus("APPROVED");
+        stubRejectionReason();
+
+        assertThatThrownBy(() -> service.updateOrganization("org-key", new UpdateOrganizationDTO(
+                OrganizationStatusEnum.APPROVED, OrganizationRejectionReasonEnum.INACTIVE_DOCUMENT)))
+                .isInstanceOf(InvalidOrganizationRejectionReasonException.class);
+
+        verify(unitOfWork).begin();
+        verify(unitOfWork, never()).commit();
+        verify(organizationRepository, never()).save(any());
+    }
+
+    @Test
+    void updateOrganization_newStatusMissing_throwsIllegalStateWithoutBeginningTransaction() {
+        when(organizationStatusRepository.findByEnumerator("APPROVED")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.updateOrganization(
+                "org-key", new UpdateOrganizationDTO(OrganizationStatusEnum.APPROVED, null)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Organization status not found");
+
+        verifyNoInteractions(unitOfWork);
+    }
+
+    @Test
+    void updateOrganization_rejectionReasonMissing_throwsIllegalStateWithoutBeginningTransaction() {
+        stubStatus("REJECTED");
+        when(organizationRejectionReasonRepository.findByEnumerator("INACTIVE_DOCUMENT"))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.updateOrganization("org-key", new UpdateOrganizationDTO(
+                OrganizationStatusEnum.REJECTED, OrganizationRejectionReasonEnum.INACTIVE_DOCUMENT)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Organization rejection reason not found");
+
+        verifyNoInteractions(unitOfWork);
+    }
+
+    @Test
+    void deleteOrganization_approved_savesDeletedOrganizationWithNullReason() {
+        stubOrganization("APPROVED");
+        stubStatus("DELETED");
+        when(organizationRepository.save(any(Organization.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.deleteOrganization("org-key");
+
+        ArgumentCaptor<Organization> captor = ArgumentCaptor.forClass(Organization.class);
+        verify(organizationRepository).save(captor.capture());
+        assertThat(captor.getValue().getOrganizationStatus().getEnumerator()).isEqualTo("DELETED");
+        assertThat(captor.getValue().getOrganizationRejectionReason()).isNull();
+    }
+
+    @Test
+    void deleteOrganization_approved_savesHistoryWithOldAndNewStatusInsideTransaction() {
+        stubOrganization("APPROVED");
+        stubStatus("DELETED");
+        when(organizationRepository.save(any(Organization.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.deleteOrganization("org-key");
+
+        ArgumentCaptor<OrganizationHistory> captor = ArgumentCaptor.forClass(OrganizationHistory.class);
+        var order = inOrder(unitOfWork, organizationRepository, organizationHistoryRepository);
+        order.verify(unitOfWork).begin();
+        order.verify(organizationRepository).findForUpdateByOrganizationKey("org-key");
+        order.verify(organizationRepository).save(any(Organization.class));
+        order.verify(organizationHistoryRepository).save(captor.capture());
+        order.verify(unitOfWork).commit();
+        verify(unitOfWork, never()).rollback();
+        assertThat(captor.getValue().getOldStatus().getEnumerator()).isEqualTo("APPROVED");
+        assertThat(captor.getValue().getNewStatus().getEnumerator()).isEqualTo("DELETED");
+    }
+
+    @Test
+    void deleteOrganization_unknownKey_throwsNotFoundWithoutCommit() {
+        stubStatus("DELETED");
+        when(organizationRepository.findForUpdateByOrganizationKey("org-key")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.deleteOrganization("org-key"))
+                .isInstanceOf(OrganizationNotFoundException.class);
+
+        verify(unitOfWork).begin();
+        verify(unitOfWork, never()).commit();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"PENDING", "REJECTED", "DELETED"})
+    void deleteOrganization_notApproved_throwsStatusNotAllowedWithoutCommit(String currentStatus) {
+        stubOrganization(currentStatus);
+        stubStatus("DELETED");
+
+        assertThatThrownBy(() -> service.deleteOrganization("org-key"))
+                .isInstanceOf(OrganizationStatusNotAllowedException.class);
+
+        verify(unitOfWork).begin();
+        verify(unitOfWork, never()).commit();
+        verify(organizationRepository, never()).save(any());
+    }
+
+    @Test
+    void deleteOrganization_deletedStatusMissing_throwsIllegalStateWithoutBeginningTransaction() {
+        when(organizationStatusRepository.findByEnumerator("DELETED")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.deleteOrganization("org-key"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Organization status DELETED not found");
+
+        verifyNoInteractions(unitOfWork);
     }
 
     @Test

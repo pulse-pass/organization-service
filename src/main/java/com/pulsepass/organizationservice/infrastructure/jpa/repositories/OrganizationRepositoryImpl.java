@@ -27,6 +27,11 @@ public class OrganizationRepositoryImpl implements OrganizationRepository {
     }
 
     @Override
+    public Optional<Organization> findForUpdateByOrganizationKey(String organizationKey) {
+        return jpaRepository.findForUpdateByOrganizationKey(organizationKey).map(OrganizationEntity::toDomain);
+    }
+
+    @Override
     public Optional<Organization> findByLegalPersonKey(String legalPersonKey) {
         return jpaRepository.findByLegalPersonKey(legalPersonKey).map(OrganizationEntity::toDomain);
     }

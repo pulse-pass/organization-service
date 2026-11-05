@@ -2,12 +2,16 @@ package com.pulsepass.organizationservice.unit.api.controllers;
 
 import static com.pulsepass.organizationservice.domain.entities.OrganizationStatusEnum.PENDING;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -15,12 +19,17 @@ import com.pulsepass.organizationservice.api.controllers.OrganizationController;
 import com.pulsepass.organizationservice.api.exceptions.GlobalExceptionHandler;
 import com.pulsepass.organizationservice.api.validators.InternalRequestValidator;
 import com.pulsepass.organizationservice.application.dtos.input.CreateOrganizationDTO;
+import com.pulsepass.organizationservice.application.dtos.input.UpdateOrganizationDTO;
 import com.pulsepass.organizationservice.application.services.OrganizationService;
 import com.pulsepass.organizationservice.domain.entities.Organization;
 import com.pulsepass.organizationservice.domain.entities.OrganizationRejectionReason;
+import com.pulsepass.organizationservice.domain.entities.OrganizationRejectionReasonEnum;
 import com.pulsepass.organizationservice.domain.entities.OrganizationStatus;
 import com.pulsepass.organizationservice.domain.entities.OrganizationStatusEnum;
+import com.pulsepass.organizationservice.domain.exceptions.InvalidOrganizationRejectionReasonException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationAlreadyExistsException;
+import com.pulsepass.organizationservice.domain.exceptions.OrganizationNotFoundException;
+import com.pulsepass.organizationservice.domain.exceptions.OrganizationStatusNotAllowedException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Stream;
@@ -258,6 +267,207 @@ class OrganizationControllerTest {
                 .andExpect(status().isUnsupportedMediaType())
                 .andExpect(jsonPath("$.code").value("GEN00415"))
                 .andExpect(jsonPath("$.title").value("Unsupported Media Type"));
+    }
+
+    private static final String ORGANIZATION_KEY = "11111111-2222-4333-8444-555555555555";
+    private static final String ITEM_URL = INTERNAL_URL + "/" + ORGANIZATION_KEY;
+
+    private static Organization rejectedOrganization() {
+        Organization organization = new Organization(
+                ORGANIZATION_KEY, LEGAL_PERSON_KEY, DOCUMENT_NUMBER, "Acme Events",
+                new OrganizationStatus(3L, "REJECTED", null));
+        organization.setOrganizationRejectionReason(
+                new OrganizationRejectionReason(1L, "INACTIVE_DOCUMENT", "Inactive CNPJ", null));
+        organization.setCreatedAt(LocalDateTime.of(2026, 10, 9, 14, 12));
+        organization.setUpdatedAt(LocalDateTime.of(2026, 10, 9, 14, 13));
+        return organization;
+    }
+
+    @Test
+    void updateOrganization_rejectWithReason_returns200WithRejectedBody() throws Exception {
+        when(organizationService.updateOrganization(any(String.class), any(UpdateOrganizationDTO.class)))
+                .thenReturn(rejectedOrganization());
+
+        mockMvc.perform(patch(ITEM_URL)
+                        .header("internal-token", TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"organization_status\":\"REJECTED\","
+                                + "\"organization_rejection_reason\":\"INACTIVE_DOCUMENT\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.organization_key").value(ORGANIZATION_KEY))
+                .andExpect(jsonPath("$.organization_status").value("REJECTED"))
+                .andExpect(jsonPath("$.organization_rejection_reason").value("INACTIVE_DOCUMENT"))
+                .andExpect(jsonPath("$.organization_rejection_reason_description").value("Inactive CNPJ"));
+
+        verify(organizationService).updateOrganization(ORGANIZATION_KEY, new UpdateOrganizationDTO(
+                OrganizationStatusEnum.REJECTED, OrganizationRejectionReasonEnum.INACTIVE_DOCUMENT));
+    }
+
+    @Test
+    void updateOrganization_approveWithNullReason_returns200AndForwardsDto() throws Exception {
+        when(organizationService.updateOrganization(any(String.class), any(UpdateOrganizationDTO.class)))
+                .thenReturn(rejectedOrganization());
+
+        mockMvc.perform(patch(ITEM_URL)
+                        .header("internal-token", TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"organization_status\":\"APPROVED\",\"organization_rejection_reason\":null}"))
+                .andExpect(status().isOk());
+
+        verify(organizationService).updateOrganization(
+                ORGANIZATION_KEY, new UpdateOrganizationDTO(OrganizationStatusEnum.APPROVED, null));
+    }
+
+    @Test
+    void updateOrganization_adminRoleWithoutToken_returns200() throws Exception {
+        when(organizationService.updateOrganization(any(String.class), any(UpdateOrganizationDTO.class)))
+                .thenReturn(rejectedOrganization());
+
+        mockMvc.perform(patch(ITEM_URL)
+                        .header("selected-user-roles", "admin")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"organization_status\":\"APPROVED\"}"))
+                .andExpect(status().isOk());
+
+        verify(internalRequestValidator).validateInternalTokenOrAdmin(null, "admin");
+    }
+
+    @Test
+    void updateOrganization_missingToken_returns401() throws Exception {
+        mockMvc.perform(patch(ITEM_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"organization_status\":\"APPROVED\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("GEN00401"));
+
+        verifyNoInteractions(organizationService);
+    }
+
+    @Test
+    void updateOrganization_missingStatus_returns400WithRequired() throws Exception {
+        mockMvc.perform(patch(ITEM_URL)
+                        .header("internal-token", TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("GEN00400"))
+                .andExpect(jsonPath("$.extra_fields[0].field").value("organization_status"))
+                .andExpect(jsonPath("$.extra_fields[0].error").value("REQUIRED"));
+
+        verifyNoInteractions(organizationService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"PENDING", "DELETED", "approved", "OTHER"})
+    void updateOrganization_statusOutsideAllowedValues_returns400WithInvalidFormat(String status) throws Exception {
+        mockMvc.perform(patch(ITEM_URL)
+                        .header("internal-token", TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"organization_status\":\"" + status + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.extra_fields[0].field").value("body"))
+                .andExpect(jsonPath("$.extra_fields[0].error").value("INVALID_FORMAT"));
+
+        verifyNoInteractions(organizationService);
+    }
+
+    @Test
+    void updateOrganization_reasonOutsideEnum_returns400WithBodyInvalidFormat() throws Exception {
+        mockMvc.perform(patch(ITEM_URL)
+                        .header("internal-token", TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"organization_status\":\"REJECTED\","
+                                + "\"organization_rejection_reason\":\"OTHER\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.extra_fields.length()").value(1))
+                .andExpect(jsonPath("$.extra_fields[0].field").value("body"))
+                .andExpect(jsonPath("$.extra_fields[0].error").value("INVALID_FORMAT"));
+
+        verifyNoInteractions(organizationService);
+    }
+
+    @Test
+    void updateOrganization_serviceThrowsNotFound_returns404() throws Exception {
+        when(organizationService.updateOrganization(any(String.class), any(UpdateOrganizationDTO.class)))
+                .thenThrow(new OrganizationNotFoundException());
+
+        mockMvc.perform(patch(ITEM_URL)
+                        .header("internal-token", TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"organization_status\":\"APPROVED\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ORG00002"));
+    }
+
+    @Test
+    void updateOrganization_serviceThrowsStatusNotAllowed_returns422() throws Exception {
+        when(organizationService.updateOrganization(any(String.class), any(UpdateOrganizationDTO.class)))
+                .thenThrow(new OrganizationStatusNotAllowedException());
+
+        mockMvc.perform(patch(ITEM_URL)
+                        .header("internal-token", TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"organization_status\":\"APPROVED\"}"))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.code").value("ORG00003"));
+    }
+
+    @Test
+    void updateOrganization_serviceThrowsInvalidReason_returns422() throws Exception {
+        when(organizationService.updateOrganization(any(String.class), any(UpdateOrganizationDTO.class)))
+                .thenThrow(new InvalidOrganizationRejectionReasonException());
+
+        mockMvc.perform(patch(ITEM_URL)
+                        .header("internal-token", TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"organization_status\":\"REJECTED\"}"))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.code").value("ORG00004"));
+    }
+
+    @Test
+    void deleteOrganization_internalToken_returns204WithoutBody() throws Exception {
+        mockMvc.perform(delete(ITEM_URL).header("internal-token", TOKEN))
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""));
+
+        verify(organizationService).deleteOrganization(ORGANIZATION_KEY);
+    }
+
+    @Test
+    void deleteOrganization_adminRoleWithoutToken_returns204() throws Exception {
+        mockMvc.perform(delete(ITEM_URL).header("selected-user-roles", "admin"))
+                .andExpect(status().isNoContent());
+
+        verify(internalRequestValidator).validateInternalTokenOrAdmin(null, "admin");
+    }
+
+    @Test
+    void deleteOrganization_missingToken_returns401() throws Exception {
+        mockMvc.perform(delete(ITEM_URL))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("GEN00401"));
+
+        verifyNoInteractions(organizationService);
+    }
+
+    @Test
+    void deleteOrganization_serviceThrowsNotFound_returns404() throws Exception {
+        doThrow(new OrganizationNotFoundException()).when(organizationService).deleteOrganization(ORGANIZATION_KEY);
+
+        mockMvc.perform(delete(ITEM_URL).header("internal-token", TOKEN))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ORG00002"));
+    }
+
+    @Test
+    void deleteOrganization_serviceThrowsStatusNotAllowed_returns422() throws Exception {
+        doThrow(new OrganizationStatusNotAllowedException())
+                .when(organizationService).deleteOrganization(ORGANIZATION_KEY);
+
+        mockMvc.perform(delete(ITEM_URL).header("internal-token", TOKEN))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.code").value("ORG00003"));
     }
 
     @Test

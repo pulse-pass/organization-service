@@ -9,6 +9,8 @@ public interface OrganizationRepository {
 
     Organization save(Organization organization);
 
+    Optional<Organization> findForUpdateByOrganizationKey(String organizationKey);
+
     Optional<Organization> findByLegalPersonKey(String legalPersonKey);
 
     Optional<Organization> findByDocumentNumber(String documentNumber);

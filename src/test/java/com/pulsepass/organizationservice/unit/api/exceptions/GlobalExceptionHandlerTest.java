@@ -8,8 +8,11 @@ import com.pulsepass.organizationservice.api.exceptions.ErrorResponse;
 import com.pulsepass.organizationservice.api.exceptions.ExtraFieldErrorResponse;
 import com.pulsepass.organizationservice.api.exceptions.GlobalExceptionHandler;
 import com.pulsepass.organizationservice.domain.exceptions.DomainException;
+import com.pulsepass.organizationservice.domain.exceptions.InvalidOrganizationRejectionReasonException;
 import com.pulsepass.organizationservice.domain.exceptions.MissingSelectedAgentKeyException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationAlreadyExistsException;
+import com.pulsepass.organizationservice.domain.exceptions.OrganizationNotFoundException;
+import com.pulsepass.organizationservice.domain.exceptions.OrganizationStatusNotAllowedException;
 import com.pulsepass.organizationservice.domain.exceptions.UnauthorizedInternalRequestException;
 import java.util.List;
 import java.util.Locale;
@@ -47,6 +50,9 @@ class GlobalExceptionHandlerTest {
         messages.addMessage("error.internal", Locale.ENGLISH, "internal");
         messages.addMessage("error.bad_request", Locale.ENGLISH, "bad request");
         messages.addMessage("error.organization.already_exists", Locale.ENGLISH, "already exists");
+        messages.addMessage("error.organization.not_found", Locale.ENGLISH, "organization not found");
+        messages.addMessage("error.organization.status_not_allowed", Locale.ENGLISH, "status not allowed");
+        messages.addMessage("error.organization.invalid_rejection_reason", Locale.ENGLISH, "invalid reason");
         messages.addMessage("error.unauthorized", Locale.ENGLISH, "unauthorized");
         messages.addMessage("error.not_found", Locale.ENGLISH, "not found");
         messages.addMessage("error.method_not_allowed", Locale.ENGLISH, "method not allowed");
@@ -73,6 +79,45 @@ class GlobalExceptionHandlerTest {
                 "Conflict",
                 "already exists",
                 "ORG00001",
+                List.of()
+        ));
+    }
+
+    @Test
+    void handleDomain_organizationNotFound_returns404WithOrg00002() {
+        var response = handler.handleDomain(new OrganizationNotFoundException());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isEqualTo(new ErrorResponse(
+                "Not Found",
+                "organization not found",
+                "ORG00002",
+                List.of()
+        ));
+    }
+
+    @Test
+    void handleDomain_statusNotAllowed_returns422WithOrg00003() {
+        var response = handler.handleDomain(new OrganizationStatusNotAllowedException());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
+        assertThat(response.getBody()).isEqualTo(new ErrorResponse(
+                "Unprocessable Content",
+                "status not allowed",
+                "ORG00003",
+                List.of()
+        ));
+    }
+
+    @Test
+    void handleDomain_invalidRejectionReason_returns422WithOrg00004() {
+        var response = handler.handleDomain(new InvalidOrganizationRejectionReasonException());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
+        assertThat(response.getBody()).isEqualTo(new ErrorResponse(
+                "Unprocessable Content",
+                "invalid reason",
+                "ORG00004",
                 List.of()
         ));
     }

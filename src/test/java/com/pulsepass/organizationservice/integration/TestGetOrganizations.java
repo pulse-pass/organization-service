@@ -46,6 +46,32 @@ class TestGetOrganizations extends BaseIntegrationTest {
     }
 
     @Test
+    void listOrganizations_rejectedOrganization_returnsRejectionReasonAndDescription() {
+        String legalPersonKey = UUID.randomUUID().toString();
+        String organizationKey = SetupTools
+                .createOrganization(
+                        internalToken, legalPersonKey, CnpjGenerator.generateCnpj(), "Producoes Exemplo Ltda")
+                .getString("organization_key");
+        SetupTools.updateOrganization(internalToken, organizationKey, "REJECTED", "INACTIVE_DOCUMENT");
+
+        Response response = given()
+                    .header("selected-agent-key", legalPersonKey)
+                .when()
+                    .get(GET_ORGANIZATIONS)
+                .then()
+                    .extract().response();
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.jsonPath().getList("data")).hasSize(1);
+        assertThat(response.jsonPath().getString("data[0].organization_key")).isEqualTo(organizationKey);
+        assertThat(response.jsonPath().getString("data[0].organization_status")).isEqualTo("REJECTED");
+        assertThat(response.jsonPath().getString("data[0].organization_rejection_reason"))
+                .isEqualTo("INACTIVE_DOCUMENT");
+        assertThat(response.jsonPath().getString("data[0].organization_rejection_reason_description"))
+                .isNotBlank();
+    }
+
+    @Test
     void listOrganizations_otherLegalPersonKey_returnsEmptyList() {
         SetupTools.createOrganization(
                 internalToken, UUID.randomUUID().toString(), CnpjGenerator.generateCnpj(), "Producoes Exemplo Ltda");

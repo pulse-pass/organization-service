@@ -3,9 +3,11 @@ package com.pulsepass.organizationservice.api.controllers;
 import com.pulsepass.organizationservice.api.responses.CreateInternalOrganizationResponse;
 import com.pulsepass.organizationservice.api.responses.ListInternalOrganizationsResponse;
 import com.pulsepass.organizationservice.api.responses.ListOrganizationsResponse;
+import com.pulsepass.organizationservice.api.responses.UpdateInternalOrganizationResponse;
 import com.pulsepass.organizationservice.api.responses.pagination.PaginatedResponse;
 import com.pulsepass.organizationservice.api.responses.pagination.PaginationResponse;
 import com.pulsepass.organizationservice.api.schemas.CreateOrganizationSchema;
+import com.pulsepass.organizationservice.api.schemas.UpdateOrganizationSchema;
 import com.pulsepass.organizationservice.api.validators.InternalRequestValidator;
 import com.pulsepass.organizationservice.application.services.OrganizationService;
 import com.pulsepass.organizationservice.domain.entities.OrganizationStatusEnum;
@@ -13,7 +15,10 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -43,6 +48,29 @@ public class OrganizationController {
         internalRequestValidator.validateInternalTokenOrAdmin(internalToken, selectedUserRoles);
         var organization = organizationService.createOrganization(request.toDTO());
         return ResponseEntity.status(201).body(CreateInternalOrganizationResponse.fromEntity(organization));
+    }
+
+    @PatchMapping("/organization/internal/organizations/{organization_key}")
+    public ResponseEntity<UpdateInternalOrganizationResponse> updateOrganization(
+            @RequestHeader(value = "internal-token", required = false) String internalToken,
+            @RequestHeader(value = "selected-user-roles", required = false) String selectedUserRoles,
+            @PathVariable("organization_key") String organizationKey,
+            @Valid @RequestBody UpdateOrganizationSchema request
+    ) {
+        internalRequestValidator.validateInternalTokenOrAdmin(internalToken, selectedUserRoles);
+        var organization = organizationService.updateOrganization(organizationKey, request.toDTO());
+        return ResponseEntity.ok(UpdateInternalOrganizationResponse.fromEntity(organization));
+    }
+
+    @DeleteMapping("/organization/internal/organizations/{organization_key}")
+    public ResponseEntity<Void> deleteOrganization(
+            @RequestHeader(value = "internal-token", required = false) String internalToken,
+            @RequestHeader(value = "selected-user-roles", required = false) String selectedUserRoles,
+            @PathVariable("organization_key") String organizationKey
+    ) {
+        internalRequestValidator.validateInternalTokenOrAdmin(internalToken, selectedUserRoles);
+        organizationService.deleteOrganization(organizationKey);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/organization/organizations")

@@ -127,6 +127,41 @@ class TestGetInternalOrganizations extends BaseIntegrationTest {
     }
 
     @Test
+    void listInternalOrganizations_organizationStatusError_returnsOnlyErrorOrganizations() {
+        String prefix = "x" + UUID.randomUUID().toString().replace("-", "").substring(0, 11);
+        String legalPersonKey = UUID.randomUUID().toString();
+        String errorOrganizationKey = SetupTools
+                .createOrganization(
+                        internalToken, legalPersonKey, CnpjGenerator.generateCnpj(), prefix + " Com Erro Ltda")
+                .getString("organization_key");
+        SetupTools.createOrganization(
+                internalToken, UUID.randomUUID().toString(), CnpjGenerator.generateCnpj(), prefix + " Pendente Ltda");
+        SetupTools.approveOrganizationWithError(internalToken, legalPersonKey, errorOrganizationKey);
+
+        Response error = given()
+                    .header("internal-token", internalToken)
+                    .queryParam("organization_status", "ERROR")
+                    .queryParam("name", prefix)
+                .when()
+                    .get(GET_INTERNAL_ORGANIZATIONS)
+                .then()
+                    .extract().response();
+        Response all = given()
+                    .header("internal-token", internalToken)
+                    .queryParam("name", prefix)
+                .when()
+                    .get(GET_INTERNAL_ORGANIZATIONS)
+                .then()
+                    .extract().response();
+
+        assertThat(error.statusCode()).isEqualTo(200);
+        assertThat(error.jsonPath().getList("data")).hasSize(1);
+        assertThat(error.jsonPath().getString("data[0].organization_key")).isEqualTo(errorOrganizationKey);
+        assertThat(error.jsonPath().getString("data[0].organization_status")).isEqualTo("ERROR");
+        assertThat(all.jsonPath().getList("data")).hasSize(2);
+    }
+
+    @Test
     void listInternalOrganizations_unknownOrganizationStatus_returns400WithInvalidFormat() {
         Response response = given()
                     .header("internal-token", internalToken)

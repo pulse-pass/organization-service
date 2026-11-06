@@ -1,0 +1,25 @@
+{
+  "httpRequest": {
+    "method": "POST",
+    "path": "/v3/accounts"
+  },
+  "httpResponse": {
+    "statusCode": 200,
+    "headers": {
+      "Content-Type": ["application/json"]
+    },
+    "body": {
+      "object": "account",
+      "id": "6f1c2d3e-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+      "name": "Producoes Exemplo Ltda",
+      "email": "contato@exemplo.com.br",
+      "loginEmail": "contato@exemplo.com.br",
+      "cpfCnpj": "12345678000195",
+      "walletId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+      "accessToken": {
+        "id": "0b9a8c7d-6e5f-4a3b-9c2d-1e0f9a8b7c6d",
+        "apiKey": "$aact_hmlg_000default-sandbox-api-key"
+      }
+    }
+  }
+}

@@ -42,6 +42,50 @@ public final class SetupTools {
         return response.jsonPath();
     }
 
+    public static JsonPath approveOrganization(
+            String internalToken,
+            String legalPersonKey,
+            String organizationKey
+    ) {
+        MockTools.clearMocker();
+        MockTools.addExpectation("onboarding-service/get-legal-persons", Map.of("legal_person_key", legalPersonKey));
+        MockTools.addExpectation("asaas/post-accounts");
+
+        Response response = given()
+                    .header("internal-token", internalToken)
+                    .contentType(ContentType.JSON)
+                    .body(Map.of("organization_status", "APPROVED"))
+                .when()
+                    .patch(PATCH_ORGANIZATION, organizationKey)
+                .then()
+                    .extract().response();
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        return response.jsonPath();
+    }
+
+    public static JsonPath approveOrganizationWithError(
+            String internalToken,
+            String legalPersonKey,
+            String organizationKey
+    ) {
+        MockTools.clearMocker();
+        MockTools.addExpectation("onboarding-service/get-legal-persons", Map.of("legal_person_key", legalPersonKey));
+        MockTools.addExpectation("asaas/post-accounts_server_error");
+
+        Response response = given()
+                    .header("internal-token", internalToken)
+                    .contentType(ContentType.JSON)
+                    .body(Map.of("organization_status", "APPROVED"))
+                .when()
+                    .patch(PATCH_ORGANIZATION, organizationKey)
+                .then()
+                    .extract().response();
+
+        assertThat(response.statusCode()).isEqualTo(422);
+        return response.jsonPath();
+    }
+
     public static JsonPath updateOrganization(
             String internalToken,
             String organizationKey,

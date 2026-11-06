@@ -10,6 +10,6 @@ class OrganizationStatusEnumTest {
     @Test
     void values_all_matchSeededEnumerators() {
         assertThat(OrganizationStatusEnum.values()).extracting(Enum::name)
-                .containsExactly("PENDING", "APPROVED", "REJECTED", "DELETED");
+                .containsExactly("PENDING", "APPROVED", "REJECTED", "DELETED", "ERROR");
     }
 }

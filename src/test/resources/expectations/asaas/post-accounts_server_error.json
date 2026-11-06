@@ -1,0 +1,9 @@
+{
+  "httpRequest": {
+    "method": "POST",
+    "path": "/v3/accounts"
+  },
+  "httpResponse": {
+    "statusCode": 500
+  }
+}

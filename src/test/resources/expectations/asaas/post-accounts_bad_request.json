@@ -1,0 +1,20 @@
+{
+  "httpRequest": {
+    "method": "POST",
+    "path": "/v3/accounts"
+  },
+  "httpResponse": {
+    "statusCode": 400,
+    "headers": {
+      "Content-Type": ["application/json"]
+    },
+    "body": {
+      "errors": [
+        {
+          "code": "invalid_object",
+          "description": "O CNPJ informado e invalido."
+        }
+      ]
+    }
+  }
+}

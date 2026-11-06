@@ -1,5 +1,6 @@
 package com.pulsepass.organizationservice.integration;
 
+import com.pulsepass.organizationservice.common.MockTools;
 import io.restassured.RestAssured;
 import org.junit.jupiter.api.BeforeAll;
 
@@ -19,5 +20,9 @@ public abstract class BaseIntegrationTest {
         RestAssured.baseURI = env("API_BASE_URL", "http://localhost");
         RestAssured.port = Integer.parseInt(env("API_PORT", "8082"));
         internalToken = env("INTERNAL_TOKEN", "pulse-pass-internal-token");
+        MockTools.configure(
+                env("API_BASE_URL", "http://localhost"),
+                Integer.parseInt(env("MOCKSERVER_PORT", "1082"))
+        );
     }
 }

@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS organization.organization_status (
 );
 
 INSERT IGNORE INTO organization.organization_status (enumerator)
-VALUES ('PENDING'), ('APPROVED'), ('REJECTED'), ('DELETED');
+VALUES ('PENDING'), ('APPROVED'), ('REJECTED'), ('DELETED'), ('ERROR');
 
 CREATE TABLE IF NOT EXISTS organization.organization_rejection_reason (
     id            BIGINT        NOT NULL AUTO_INCREMENT,

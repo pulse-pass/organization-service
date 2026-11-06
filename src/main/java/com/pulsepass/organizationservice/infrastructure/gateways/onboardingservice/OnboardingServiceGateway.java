@@ -1,12 +1,13 @@
 package com.pulsepass.organizationservice.infrastructure.gateways.onboardingservice;
 
-import com.pulsepass.organizationservice.domain.exceptions.LegalPersonRetrievalException;
+import com.pulsepass.organizationservice.domain.exceptions.PersonRetrievalException;
 import com.pulsepass.organizationservice.domain.gateways.onboarding.OnboardingGateway;
-import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetLegalPersonInputDTO;
-import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetLegalPersonOutputDTO;
+import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetPersonInputDTO;
+import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetPersonOutputDTO;
 import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.LegalPersonAddressDTO;
-import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.LegalPersonPhoneNumberDTO;
-import com.pulsepass.organizationservice.infrastructure.gateways.onboardingservice.dtos.OnboardingServiceGetLegalPersonResponse;
+import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.LegalPersonDTO;
+import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.PersonPhoneNumberDTO;
+import com.pulsepass.organizationservice.infrastructure.gateways.onboardingservice.dtos.OnboardingServiceGetPersonResponse;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,61 +38,64 @@ public class OnboardingServiceGateway implements OnboardingGateway {
     }
 
     @Override
-    public GetLegalPersonOutputDTO getLegalPerson(GetLegalPersonInputDTO input) {
+    public GetPersonOutputDTO getPerson(GetPersonInputDTO input) {
         logger.info(
-                "OnboardingServiceGateway.getLegalPerson - Fetching legal person {}",
-                Map.of("legal_person_key", input.legalPersonKey())
+                "OnboardingServiceGateway.getPerson - Fetching person {}",
+                Map.of("person_key", input.personKey())
         );
 
-        ResponseEntity<OnboardingServiceGetLegalPersonResponse> response;
+        ResponseEntity<OnboardingServiceGetPersonResponse> response;
         try {
             response = restClient.get()
-                    .uri("/onboarding/internal/legal_persons/{legal_person_key}", input.legalPersonKey())
+                    .uri("/onboarding/internal/persons/{person_key}", input.personKey())
                     .header("internal-token", this.internalToken)
                     .retrieve()
-                    .toEntity(OnboardingServiceGetLegalPersonResponse.class);
+                    .toEntity(OnboardingServiceGetPersonResponse.class);
         } catch (RestClientException ex) {
             logger.error(
-                    "OnboardingServiceGateway.getLegalPerson - Request failed {}",
-                    Map.of("legal_person_key", input.legalPersonKey()),
+                    "OnboardingServiceGateway.getPerson - Request failed {}",
+                    Map.of("person_key", input.personKey()),
                     ex
             );
-            throw new LegalPersonRetrievalException();
+            throw new PersonRetrievalException();
         }
 
         if (response.getStatusCode() != HttpStatus.OK) {
             logger.error(
-                    "OnboardingServiceGateway.getLegalPerson - Unexpected status {}",
-                    Map.of("legal_person_key", input.legalPersonKey(), "status", response.getStatusCode().value())
+                    "OnboardingServiceGateway.getPerson - Unexpected status {}",
+                    Map.of("person_key", input.personKey(), "status", response.getStatusCode().value())
             );
-            throw new LegalPersonRetrievalException();
+            throw new PersonRetrievalException();
         }
         var body = response.getBody();
         if (body == null) {
             logger.error(
-                    "OnboardingServiceGateway.getLegalPerson - Response without body {}",
-                    Map.of("legal_person_key", input.legalPersonKey())
+                    "OnboardingServiceGateway.getPerson - Response without body {}",
+                    Map.of("person_key", input.personKey())
             );
-            throw new LegalPersonRetrievalException();
+            throw new PersonRetrievalException();
         }
 
         var phoneNumbers = body.phoneNumbers().stream()
-                .map(phone -> new LegalPersonPhoneNumberDTO(phone.areaCode(), phone.number()))
+                .map(phone -> new PersonPhoneNumberDTO(phone.areaCode(), phone.number()))
                 .toList();
-        var address = body.legalPersonAddress();
-        return new GetLegalPersonOutputDTO(
+        var legalPerson = body.legalPerson();
+        var address = legalPerson.legalPersonAddress();
+        return new GetPersonOutputDTO(
                 body.name(),
                 body.documentNumber(),
-                body.email(),
                 phoneNumbers,
-                body.legalPersonCompanyType(),
-                body.monthlyRevenueAmount(),
-                new LegalPersonAddressDTO(
-                        address.postalCode(),
-                        address.street(),
-                        address.number(),
-                        address.complement(),
-                        address.neighborhood()
+                new LegalPersonDTO(
+                        legalPerson.email(),
+                        legalPerson.legalPersonCompanyType(),
+                        legalPerson.monthlyRevenueAmount(),
+                        new LegalPersonAddressDTO(
+                                address.postalCode(),
+                                address.street(),
+                                address.number(),
+                                address.complement(),
+                                address.neighborhood()
+                        )
                 )
         );
     }

@@ -22,16 +22,17 @@ import com.pulsepass.organizationservice.domain.entities.OrganizationRejectionRe
 import com.pulsepass.organizationservice.domain.entities.OrganizationStatus;
 import com.pulsepass.organizationservice.domain.entities.OrganizationStatusEnum;
 import com.pulsepass.organizationservice.domain.exceptions.InvalidOrganizationRejectionReasonException;
-import com.pulsepass.organizationservice.domain.exceptions.LegalPersonRetrievalException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationAlreadyExistsException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationNotFoundException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationStatusNotAllowedException;
 import com.pulsepass.organizationservice.domain.exceptions.PaymentAccountCreationException;
+import com.pulsepass.organizationservice.domain.exceptions.PersonRetrievalException;
 import com.pulsepass.organizationservice.domain.gateways.onboarding.OnboardingGateway;
-import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetLegalPersonInputDTO;
-import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetLegalPersonOutputDTO;
+import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetPersonInputDTO;
+import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetPersonOutputDTO;
 import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.LegalPersonAddressDTO;
-import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.LegalPersonPhoneNumberDTO;
+import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.LegalPersonDTO;
+import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.PersonPhoneNumberDTO;
 import com.pulsepass.organizationservice.domain.gateways.paymentprovider.PaymentProviderGateway;
 import com.pulsepass.organizationservice.domain.gateways.paymentprovider.dtos.CreatePaymentAccountInputDTO;
 import com.pulsepass.organizationservice.domain.gateways.paymentprovider.dtos.CreatePaymentAccountOutputDTO;
@@ -268,22 +269,24 @@ class OrganizationServiceTest {
                         new OrganizationRejectionReason(1L, "INACTIVE_DOCUMENT", "Inactive CNPJ", null)));
     }
 
-    private GetLegalPersonOutputDTO legalPersonOutput() {
-        return new GetLegalPersonOutputDTO(
+    private GetPersonOutputDTO personOutput() {
+        return new GetPersonOutputDTO(
                 "Acme Events Ltda",
                 DOCUMENT_NUMBER,
-                "contact@acme.com",
                 List.of(
-                        new LegalPersonPhoneNumberDTO("51", "999990000"),
-                        new LegalPersonPhoneNumberDTO("11", "888880000")),
-                "LIMITED",
-                new BigDecimal("25000.00"),
-                new LegalPersonAddressDTO("90110220", "Rua Ismael Chaves Barcelos", "60", null, "Praia de Belas"));
+                        new PersonPhoneNumberDTO("51", "999990000"),
+                        new PersonPhoneNumberDTO("11", "888880000")),
+                new LegalPersonDTO(
+                        "contact@acme.com",
+                        "LIMITED",
+                        new BigDecimal("25000.00"),
+                        new LegalPersonAddressDTO(
+                                "90110220", "Rua Ismael Chaves Barcelos", "60", null, "Praia de Belas")));
     }
 
-    private void stubLegalPerson() {
-        when(onboardingGateway.getLegalPerson(new GetLegalPersonInputDTO(LEGAL_PERSON_KEY)))
-                .thenReturn(legalPersonOutput());
+    private void stubPerson() {
+        when(onboardingGateway.getPerson(new GetPersonInputDTO(LEGAL_PERSON_KEY)))
+                .thenReturn(personOutput());
     }
 
     @Test
@@ -291,7 +294,7 @@ class OrganizationServiceTest {
         stubOrganization("PENDING");
         stubStatus("APPROVED");
         stubStatus("ERROR");
-        stubLegalPerson();
+        stubPerson();
         when(paymentProviderGateway.createPaymentAccount(any()))
                 .thenReturn(new CreatePaymentAccountOutputDTO("account-key", "wallet-key", "plain-api-key"));
         when(secretCipher.encrypt("plain-api-key")).thenReturn("encrypted-api-key");
@@ -309,11 +312,11 @@ class OrganizationServiceTest {
     }
 
     @Test
-    void updateOrganization_approve_sendsLegalPersonDataToPaymentProviderGateway() {
+    void updateOrganization_approve_sendsPersonDataToPaymentProviderGateway() {
         stubOrganization("PENDING");
         stubStatus("APPROVED");
         stubStatus("ERROR");
-        stubLegalPerson();
+        stubPerson();
         when(paymentProviderGateway.createPaymentAccount(any()))
                 .thenReturn(new CreatePaymentAccountOutputDTO("account-key", "wallet-key", "plain-api-key"));
         when(secretCipher.encrypt("plain-api-key")).thenReturn("encrypted-api-key");
@@ -334,7 +337,7 @@ class OrganizationServiceTest {
         stubOrganization("PENDING");
         stubStatus("APPROVED");
         stubStatus("ERROR");
-        stubLegalPerson();
+        stubPerson();
         when(paymentProviderGateway.createPaymentAccount(any()))
                 .thenReturn(new CreatePaymentAccountOutputDTO("account-key", "wallet-key", "plain-api-key"));
         when(secretCipher.encrypt("plain-api-key")).thenReturn("encrypted-api-key");
@@ -347,7 +350,7 @@ class OrganizationServiceTest {
                 organizationHistoryRepository);
         order.verify(unitOfWork).begin();
         order.verify(organizationRepository).findForUpdateByOrganizationKey("org-key");
-        order.verify(onboardingGateway).getLegalPerson(any());
+        order.verify(onboardingGateway).getPerson(any());
         order.verify(paymentProviderGateway).createPaymentAccount(any());
         order.verify(organizationRepository).save(any(Organization.class));
         order.verify(organizationHistoryRepository).save(captor.capture());
@@ -363,11 +366,11 @@ class OrganizationServiceTest {
         stubOrganization("PENDING");
         stubStatus("APPROVED");
         stubStatus("ERROR");
-        when(onboardingGateway.getLegalPerson(any())).thenThrow(new NullPointerException());
+        when(onboardingGateway.getPerson(any())).thenThrow(new NullPointerException());
 
         assertThatThrownBy(() -> service.updateOrganization(
                 "org-key", new UpdateOrganizationDTO(OrganizationStatusEnum.APPROVED, null)))
-                .isInstanceOf(LegalPersonRetrievalException.class);
+                .isInstanceOf(PersonRetrievalException.class);
 
         verify(unitOfWork, never()).commit();
         verifyNoInteractions(paymentProviderGateway);
@@ -378,7 +381,7 @@ class OrganizationServiceTest {
         stubOrganization("PENDING");
         stubStatus("APPROVED");
         stubStatus("ERROR");
-        stubLegalPerson();
+        stubPerson();
         when(paymentProviderGateway.createPaymentAccount(any())).thenThrow(new NullPointerException());
         when(organizationRepository.save(any(Organization.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -397,7 +400,7 @@ class OrganizationServiceTest {
         stubOrganization("PENDING");
         stubStatus("APPROVED");
         stubStatus("ERROR");
-        stubLegalPerson();
+        stubPerson();
         when(paymentProviderGateway.createPaymentAccount(any())).thenThrow(new PaymentAccountCreationException());
         when(organizationRepository.save(any(Organization.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -421,16 +424,16 @@ class OrganizationServiceTest {
     }
 
     @Test
-    void updateOrganization_legalPersonFetchFails_rethrowsWithoutSavingNorCommitting() {
+    void updateOrganization_personFetchFails_rethrowsWithoutSavingNorCommitting() {
         stubOrganization("PENDING");
         stubStatus("APPROVED");
         stubStatus("ERROR");
-        when(onboardingGateway.getLegalPerson(new GetLegalPersonInputDTO(LEGAL_PERSON_KEY)))
-                .thenThrow(new LegalPersonRetrievalException());
+        when(onboardingGateway.getPerson(new GetPersonInputDTO(LEGAL_PERSON_KEY)))
+                .thenThrow(new PersonRetrievalException());
 
         assertThatThrownBy(() -> service.updateOrganization(
                 "org-key", new UpdateOrganizationDTO(OrganizationStatusEnum.APPROVED, null)))
-                .isInstanceOf(LegalPersonRetrievalException.class);
+                .isInstanceOf(PersonRetrievalException.class);
 
         verify(unitOfWork).begin();
         verify(unitOfWork, never()).commit();

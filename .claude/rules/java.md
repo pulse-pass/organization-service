@@ -20,6 +20,7 @@ paths:
 
 ## Method order
 - Private methods always **before** public ones, in the order they are used.
+- A log never receives a value that came straight from the request (path variable, query string, body), which Sonar flags as log injection (`javasecurity:S5145`) and which fails the quality gate. Log the value of the loaded entity (`organization.getOrganizationKey()`) instead, or leave it out when nothing was loaded yet.
 - In the application layer, every `if` that changes the flow has a log as its first line: `logger.warn` when it refuses the request, `logger.info` when it takes another path.
 - One `catch` per different handling: two `catch` blocks that do the same thing become a single `catch (Exception ex)`. A separate `catch` exists only when that exception has specific handling.
 - Every gateway call in a service is inside a `try` with a `catch (Exception ex)`: any failure of the call is logged and becomes the domain exception of the operation, so it never leaves as a 500. A domain exception with a different meaning for the client (e.g. `InvalidCredentialsException`, `InvalidRefreshTokenException`) gets its own `catch` before it and is rethrown.

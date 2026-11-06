@@ -120,10 +120,7 @@ public class OrganizationService {
 
         OrganizationRejectionReason rejectionReason = null;
         if (dto.organizationRejectionReason() != null) {
-            logger.info(
-                    "OrganizationService.updateOrganization - Resolving the rejection reason {}",
-                    Map.of("organization_key", organizationKey)
-            );
+            logger.info("OrganizationService.updateOrganization - Resolving the rejection reason");
             rejectionReason = organizationRejectionReasonRepository
                     .findByEnumerator(dto.organizationRejectionReason().name())
                     .orElseThrow(() -> new IllegalStateException("Organization rejection reason not found"));
@@ -155,7 +152,7 @@ public class OrganizationService {
         if (dto.organizationStatus() == OrganizationStatusEnum.APPROVED) {
             logger.info(
                     "OrganizationService.updateOrganization - Creating the payment account for the approval {}",
-                    Map.of("organization_key", organizationKey)
+                    Map.of("organization_key", organization.getOrganizationKey())
             );
             GetLegalPersonOutputDTO legalPerson;
             try {
@@ -164,7 +161,10 @@ public class OrganizationService {
             } catch (Exception e) {
                 logger.error(
                         "OrganizationService.updateOrganization - Legal person retrieval failed {}",
-                        Map.of("organization_key", organizationKey, "failure", e.getClass().getSimpleName())
+                        Map.of(
+                                "organization_key", organization.getOrganizationKey(),
+                                "failure", e.getClass().getSimpleName()
+                        )
                 );
                 throw new LegalPersonRetrievalException();
             }
@@ -190,7 +190,10 @@ public class OrganizationService {
             } catch (Exception e) {
                 logger.error(
                         "OrganizationService.updateOrganization - Payment account creation failed {}",
-                        Map.of("organization_key", organizationKey, "failure", e.getClass().getSimpleName())
+                        Map.of(
+                                "organization_key", organization.getOrganizationKey(),
+                                "failure", e.getClass().getSimpleName()
+                        )
                 );
                 organization.setOrganizationStatus(errorStatus);
                 organizationRepository.save(organization);

@@ -2,12 +2,12 @@ package com.pulsepass.organizationservice.api.exceptions;
 
 import com.pulsepass.organizationservice.domain.exceptions.DomainException;
 import com.pulsepass.organizationservice.domain.exceptions.InvalidOrganizationRejectionReasonException;
-import com.pulsepass.organizationservice.domain.exceptions.LegalPersonRetrievalException;
 import com.pulsepass.organizationservice.domain.exceptions.MissingSelectedAgentKeyException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationAlreadyExistsException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationNotFoundException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationStatusNotAllowedException;
 import com.pulsepass.organizationservice.domain.exceptions.PaymentAccountCreationException;
+import com.pulsepass.organizationservice.domain.exceptions.PersonRetrievalException;
 import com.pulsepass.organizationservice.domain.exceptions.UnauthorizedInternalRequestException;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +40,7 @@ public class GlobalExceptionHandler {
             Map.entry(OrganizationStatusNotAllowedException.class, HttpStatus.UNPROCESSABLE_CONTENT),
             Map.entry(InvalidOrganizationRejectionReasonException.class, HttpStatus.UNPROCESSABLE_CONTENT),
             Map.entry(PaymentAccountCreationException.class, HttpStatus.UNPROCESSABLE_CONTENT),
-            Map.entry(LegalPersonRetrievalException.class, HttpStatus.UNPROCESSABLE_CONTENT),
+            Map.entry(PersonRetrievalException.class, HttpStatus.UNPROCESSABLE_CONTENT),
             Map.entry(UnauthorizedInternalRequestException.class, HttpStatus.UNAUTHORIZED),
             Map.entry(MissingSelectedAgentKeyException.class, HttpStatus.UNAUTHORIZED)
     );

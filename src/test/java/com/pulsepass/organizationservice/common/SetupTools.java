@@ -48,7 +48,7 @@ public final class SetupTools {
             String organizationKey
     ) {
         MockTools.clearMocker();
-        MockTools.addExpectation("onboarding-service/get-legal-persons", Map.of("legal_person_key", legalPersonKey));
+        MockTools.addExpectation("onboarding-service/get-persons", Map.of("person_key", legalPersonKey));
         MockTools.addExpectation("asaas/post-accounts");
 
         Response response = given()
@@ -70,7 +70,7 @@ public final class SetupTools {
             String organizationKey
     ) {
         MockTools.clearMocker();
-        MockTools.addExpectation("onboarding-service/get-legal-persons", Map.of("legal_person_key", legalPersonKey));
+        MockTools.addExpectation("onboarding-service/get-persons", Map.of("person_key", legalPersonKey));
         MockTools.addExpectation("asaas/post-accounts_server_error");
 
         Response response = given()

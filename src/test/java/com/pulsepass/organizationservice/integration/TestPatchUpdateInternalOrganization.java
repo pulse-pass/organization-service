@@ -35,7 +35,7 @@ class TestPatchUpdateInternalOrganization extends BaseIntegrationTest {
         expectedBody.put("organization_rejection_reason", null);
         expectedBody.put("organization_rejection_reason_description", null);
         MockTools.clearMocker();
-        MockTools.addExpectation("onboarding-service/get-legal-persons", Map.of("legal_person_key", legalPersonKey));
+        MockTools.addExpectation("onboarding-service/get-persons", Map.of("person_key", legalPersonKey));
         MockTools.addExpectation("asaas/post-accounts");
 
         Response response = given()
@@ -88,7 +88,7 @@ class TestPatchUpdateInternalOrganization extends BaseIntegrationTest {
                         "Producoes Exemplo Ltda")
                 .getString("organization_key");
         MockTools.clearMocker();
-        MockTools.addExpectation("onboarding-service/get-legal-persons", Map.of("legal_person_key", legalPersonKey));
+        MockTools.addExpectation("onboarding-service/get-persons", Map.of("person_key", legalPersonKey));
         MockTools.addExpectation("asaas/post-accounts");
 
         Response response = given()
@@ -419,23 +419,24 @@ class TestPatchUpdateInternalOrganization extends BaseIntegrationTest {
                 .getString("organization_key");
         MockTools.clearMocker();
         MockTools.addExpectation(
-                "onboarding-service/get-legal-persons",
-                Map.of("legal_person_key", legalPersonKey),
+                "onboarding-service/get-persons",
+                Map.of("person_key", legalPersonKey),
                 Map.of("payload", Map.ofEntries(
                         Map.entry("name", "Eventos Sul Ltda"),
                         Map.entry("document_number", documentNumber),
-                        Map.entry("email", "financeiro@eventossul.com.br"),
                         Map.entry("phone_numbers", List.of(
-                                Map.of("area_code", "11", "number", "988887777"),
-                                Map.of("area_code", "51", "number", "999990000"))),
-                        Map.entry("legal_person_company_type", "MEI"),
-                        Map.entry("monthly_revenue_amount", 8500.50),
-                        Map.entry("legal_person_address", Map.of(
-                                "postal_code", "01310100",
-                                "street", "Avenida Paulista",
-                                "number", "1000",
-                                "complement", "Sala 12",
-                                "neighborhood", "Bela Vista")))));
+                                Map.of("country_code", "55", "area_code", "11", "number", "988887777"),
+                                Map.of("country_code", "55", "area_code", "51", "number", "999990000"))),
+                        Map.entry("legal_person", Map.of(
+                                "email", "financeiro@eventossul.com.br",
+                                "legal_person_company_type", "MEI",
+                                "monthly_revenue_amount", 8500.50,
+                                "legal_person_address", Map.of(
+                                        "postal_code", "01310100",
+                                        "street", "Avenida Paulista",
+                                        "number", "1000",
+                                        "complement", "Sala 12",
+                                        "neighborhood", "Bela Vista"))))));
         MockTools.addExpectation("asaas/post-accounts");
 
         Response response = given()
@@ -481,7 +482,7 @@ class TestPatchUpdateInternalOrganization extends BaseIntegrationTest {
                         internalToken, legalPersonKey, CnpjGenerator.generateCnpj(), "Producoes Exemplo Ltda")
                 .getString("organization_key");
         MockTools.clearMocker();
-        MockTools.addExpectation("onboarding-service/get-legal-persons", Map.of("legal_person_key", legalPersonKey));
+        MockTools.addExpectation("onboarding-service/get-persons", Map.of("person_key", legalPersonKey));
         MockTools.addExpectation("asaas/post-accounts");
 
         Response response = given()
@@ -510,7 +511,7 @@ class TestPatchUpdateInternalOrganization extends BaseIntegrationTest {
                 .getString("organization_key");
         String apiKey = "$aact_hmlg_" + UUID.randomUUID();
         MockTools.clearMocker();
-        MockTools.addExpectation("onboarding-service/get-legal-persons", Map.of("legal_person_key", legalPersonKey));
+        MockTools.addExpectation("onboarding-service/get-persons", Map.of("person_key", legalPersonKey));
         MockTools.addExpectation(
                 "asaas/post-accounts",
                 Map.of(),
@@ -558,7 +559,7 @@ class TestPatchUpdateInternalOrganization extends BaseIntegrationTest {
                 .createOrganization(internalToken, legalPersonKey, CnpjGenerator.generateCnpj(), prefix + " Ltda")
                 .getString("organization_key");
         MockTools.clearMocker();
-        MockTools.addExpectation("onboarding-service/get-legal-persons", Map.of("legal_person_key", legalPersonKey));
+        MockTools.addExpectation("onboarding-service/get-persons", Map.of("person_key", legalPersonKey));
         MockTools.addExpectation("asaas/post-accounts_bad_request");
 
         Response response = given()
@@ -595,7 +596,7 @@ class TestPatchUpdateInternalOrganization extends BaseIntegrationTest {
                 .createOrganization(internalToken, legalPersonKey, CnpjGenerator.generateCnpj(), prefix + " Ltda")
                 .getString("organization_key");
         MockTools.clearMocker();
-        MockTools.addExpectation("onboarding-service/get-legal-persons", Map.of("legal_person_key", legalPersonKey));
+        MockTools.addExpectation("onboarding-service/get-persons", Map.of("person_key", legalPersonKey));
         MockTools.addExpectation("asaas/post-accounts_server_error");
 
         Response response = given()
@@ -630,7 +631,7 @@ class TestPatchUpdateInternalOrganization extends BaseIntegrationTest {
                 .getString("organization_key");
         MockTools.clearMocker();
         MockTools.addExpectation(
-                "onboarding-service/get-legal-persons_server_error", Map.of("legal_person_key", legalPersonKey));
+                "onboarding-service/get-persons_server_error", Map.of("person_key", legalPersonKey));
         MockTools.addExpectation("asaas/post-accounts");
 
         Response response = given()
@@ -667,7 +668,7 @@ class TestPatchUpdateInternalOrganization extends BaseIntegrationTest {
                 .getString("organization_key");
         MockTools.clearMocker();
         MockTools.addExpectation(
-                "onboarding-service/get-legal-persons_server_error", Map.of("legal_person_key", legalPersonKey));
+                "onboarding-service/get-persons_server_error", Map.of("person_key", legalPersonKey));
         Response failedResponse = given()
                     .header(INTERNAL_TOKEN_HEADER, internalToken)
                     .contentType(ContentType.JSON)
@@ -678,7 +679,7 @@ class TestPatchUpdateInternalOrganization extends BaseIntegrationTest {
                     .extract().response();
         assertThat(failedResponse.statusCode()).isEqualTo(422);
         MockTools.clearMocker();
-        MockTools.addExpectation("onboarding-service/get-legal-persons", Map.of("legal_person_key", legalPersonKey));
+        MockTools.addExpectation("onboarding-service/get-persons", Map.of("person_key", legalPersonKey));
         MockTools.addExpectation("asaas/post-accounts");
 
         Response response = given()
@@ -727,7 +728,7 @@ class TestPatchUpdateInternalOrganization extends BaseIntegrationTest {
                 .getString("organization_key");
         SetupTools.approveOrganizationWithError(internalToken, legalPersonKey, organizationKey);
         MockTools.clearMocker();
-        MockTools.addExpectation("onboarding-service/get-legal-persons", Map.of("legal_person_key", legalPersonKey));
+        MockTools.addExpectation("onboarding-service/get-persons", Map.of("person_key", legalPersonKey));
         MockTools.addExpectation("asaas/post-accounts");
 
         Response response = given()

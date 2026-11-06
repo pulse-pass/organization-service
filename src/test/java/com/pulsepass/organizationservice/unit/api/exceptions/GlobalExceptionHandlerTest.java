@@ -9,12 +9,12 @@ import com.pulsepass.organizationservice.api.exceptions.ExtraFieldErrorResponse;
 import com.pulsepass.organizationservice.api.exceptions.GlobalExceptionHandler;
 import com.pulsepass.organizationservice.domain.exceptions.DomainException;
 import com.pulsepass.organizationservice.domain.exceptions.InvalidOrganizationRejectionReasonException;
-import com.pulsepass.organizationservice.domain.exceptions.LegalPersonRetrievalException;
 import com.pulsepass.organizationservice.domain.exceptions.MissingSelectedAgentKeyException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationAlreadyExistsException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationNotFoundException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationStatusNotAllowedException;
 import com.pulsepass.organizationservice.domain.exceptions.PaymentAccountCreationException;
+import com.pulsepass.organizationservice.domain.exceptions.PersonRetrievalException;
 import com.pulsepass.organizationservice.domain.exceptions.UnauthorizedInternalRequestException;
 import java.util.List;
 import java.util.Locale;
@@ -56,7 +56,7 @@ class GlobalExceptionHandlerTest {
         messages.addMessage("error.organization.status_not_allowed", Locale.ENGLISH, "status not allowed");
         messages.addMessage("error.organization.invalid_rejection_reason", Locale.ENGLISH, "invalid reason");
         messages.addMessage("error.organization.payment_account_creation", Locale.ENGLISH, "payment account failure");
-        messages.addMessage("error.organization.legal_person_retrieval", Locale.ENGLISH, "legal person failure");
+        messages.addMessage("error.organization.person_retrieval", Locale.ENGLISH, "person failure");
         messages.addMessage("error.unauthorized", Locale.ENGLISH, "unauthorized");
         messages.addMessage("error.not_found", Locale.ENGLISH, "not found");
         messages.addMessage("error.method_not_allowed", Locale.ENGLISH, "method not allowed");
@@ -127,13 +127,13 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void handleDomain_legalPersonRetrieval_returns422WithOrg00006() {
-        var response = handler.handleDomain(new LegalPersonRetrievalException());
+    void handleDomain_personRetrieval_returns422WithOrg00006() {
+        var response = handler.handleDomain(new PersonRetrievalException());
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
         assertThat(response.getBody()).isEqualTo(new ErrorResponse(
                 "Unprocessable Content",
-                "legal person failure",
+                "person failure",
                 "ORG00006",
                 List.of()
         ));

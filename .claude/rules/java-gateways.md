@@ -12,7 +12,7 @@ paths:
 
 ## Structure and naming
 
-- **ORG-134** Nothing outside `infrastructure/` carries the name of an external provider, and domain exceptions and message keys describe the capability (`PaymentAccountCreationException`, `LegalPersonRetrievalException`), never who implements it.
+- **ORG-134** Nothing outside `infrastructure/` carries the name of an external provider, and domain exceptions and message keys describe the capability (`PaymentAccountCreationException`, `PersonRetrievalException`), never who implements it.
 - **ORG-135** One gateway per external system, not per resource: all calls to a system go through the same class.
 - **ORG-136** The domain interface is named after the role or the internal service (`PaymentProviderGateway`, `OnboardingGateway`).
 - **ORG-137** Each gateway has its own folder in `domain/gateways/<gateway>/` (named after the gateway, not the provider), holding the interface and a `dtos/` folder (e.g. `paymentprovider/PaymentProviderGateway`, `paymentprovider/dtos/CreatePaymentAccountInputDTO`).

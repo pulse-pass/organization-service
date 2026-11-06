@@ -10,14 +10,14 @@ import com.pulsepass.organizationservice.domain.entities.OrganizationRejectionRe
 import com.pulsepass.organizationservice.domain.entities.OrganizationStatus;
 import com.pulsepass.organizationservice.domain.entities.OrganizationStatusEnum;
 import com.pulsepass.organizationservice.domain.exceptions.InvalidOrganizationRejectionReasonException;
-import com.pulsepass.organizationservice.domain.exceptions.LegalPersonRetrievalException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationAlreadyExistsException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationNotFoundException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationStatusNotAllowedException;
 import com.pulsepass.organizationservice.domain.exceptions.PaymentAccountCreationException;
+import com.pulsepass.organizationservice.domain.exceptions.PersonRetrievalException;
 import com.pulsepass.organizationservice.domain.gateways.onboarding.OnboardingGateway;
-import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetLegalPersonInputDTO;
-import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetLegalPersonOutputDTO;
+import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetPersonInputDTO;
+import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetPersonOutputDTO;
 import com.pulsepass.organizationservice.domain.gateways.paymentprovider.PaymentProviderGateway;
 import com.pulsepass.organizationservice.domain.gateways.paymentprovider.dtos.CreatePaymentAccountInputDTO;
 import com.pulsepass.organizationservice.domain.gateways.paymentprovider.dtos.CreatePaymentAccountOutputDTO;
@@ -154,33 +154,33 @@ public class OrganizationService {
                     "OrganizationService.updateOrganization - Creating the payment account for the approval {}",
                     Map.of("organization_key", organization.getOrganizationKey())
             );
-            GetLegalPersonOutputDTO legalPerson;
+            GetPersonOutputDTO person;
             try {
-                legalPerson = onboardingGateway.getLegalPerson(
-                        new GetLegalPersonInputDTO(organization.getLegalPersonKey()));
+                person = onboardingGateway.getPerson(
+                        new GetPersonInputDTO(organization.getLegalPersonKey()));
             } catch (Exception e) {
                 logger.error(
-                        "OrganizationService.updateOrganization - Legal person retrieval failed {}",
+                        "OrganizationService.updateOrganization - Person retrieval failed {}",
                         Map.of(
                                 "organization_key", organization.getOrganizationKey(),
                                 "failure", e.getClass().getSimpleName()
                         )
                 );
-                throw new LegalPersonRetrievalException();
+                throw new PersonRetrievalException();
             }
-            var phoneNumber = legalPerson.phoneNumbers().get(0);
-            var address = legalPerson.legalPersonAddress();
+            var phoneNumber = person.phoneNumbers().get(0);
+            var address = person.legalPerson().legalPersonAddress();
 
             CreatePaymentAccountOutputDTO account;
             try {
                 account = paymentProviderGateway.createPaymentAccount(new CreatePaymentAccountInputDTO(
                         organization.getOrganizationKey(),
-                        legalPerson.name(),
-                        legalPerson.email(),
-                        legalPerson.documentNumber(),
+                        person.name(),
+                        person.legalPerson().email(),
+                        person.documentNumber(),
                         phoneNumber.areaCode() + phoneNumber.number(),
-                        legalPerson.legalPersonCompanyType(),
-                        legalPerson.monthlyRevenueAmount(),
+                        person.legalPerson().legalPersonCompanyType(),
+                        person.legalPerson().monthlyRevenueAmount(),
                         address.street(),
                         address.number(),
                         address.complement(),

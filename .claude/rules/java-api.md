@@ -36,3 +36,4 @@ paths:
 - **ORG-096** Input DTOs (`application/dtos/input`) exist only for fields that come from the request body through a schema; header, path and query values are passed to the service as plain parameters (e.g. `getSession(String personKey, String legalPersonKey, String roles)`).
 - **ORG-097** The `OutputDTO` suffix (and `from*Output` in responses) is only for what an external gateway returns.
 - **ORG-098** Service outputs that do not come from a gateway are `<Action><Resource>DTO` in `application/dtos/output`, named after the response they build with the suffix swapped, and the response uses `fromDTO`.
+- **ORG-260** A response root carries the fields of the route's entity; fields of another entity go in a nested object named after it, and no column repeats a key to flatten a response.

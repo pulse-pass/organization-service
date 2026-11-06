@@ -1,9 +1,9 @@
 package com.pulsepass.organizationservice.domain.gateways.onboarding;
 
-import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetLegalPersonInputDTO;
-import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetLegalPersonOutputDTO;
+import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetPersonInputDTO;
+import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetPersonOutputDTO;
 
 public interface OnboardingGateway {
 
-    GetLegalPersonOutputDTO getLegalPerson(GetLegalPersonInputDTO input);
+    GetPersonOutputDTO getPerson(GetPersonInputDTO input);
 }

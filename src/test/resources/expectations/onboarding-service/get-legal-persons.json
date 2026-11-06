@@ -1,0 +1,33 @@
+{
+  "httpRequest": {
+    "method": "GET",
+    "path": "/onboarding/internal/legal_persons/{legal_person_key}"
+  },
+  "httpResponse": {
+    "statusCode": 200,
+    "headers": {
+      "Content-Type": ["application/json"]
+    },
+    "body": {
+      "legal_person_key": "7b0f5e6a-1c3d-4e8f-9a2b-0d1e2f3a4b5c",
+      "name": "Producoes Exemplo Ltda",
+      "document_number": "12345678000195",
+      "email": "contato@exemplo.com.br",
+      "phone_numbers": [
+        {
+          "area_code": "51",
+          "number": "999990000"
+        }
+      ],
+      "legal_person_company_type": "LIMITED",
+      "monthly_revenue_amount": 25000.00,
+      "legal_person_address": {
+        "postal_code": "90110220",
+        "street": "Rua Ismael Chaves Barcelos",
+        "number": "60",
+        "complement": null,
+        "neighborhood": "Praia de Belas"
+      }
+    }
+  }
+}

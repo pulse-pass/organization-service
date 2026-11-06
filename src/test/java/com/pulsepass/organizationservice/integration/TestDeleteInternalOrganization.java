@@ -17,11 +17,12 @@ class TestDeleteInternalOrganization extends BaseIntegrationTest {
     @Test
     void deleteOrganization_approvedOrganization_returnsNoContentAndMarksAsDeleted() {
         String prefix = "x" + UUID.randomUUID().toString().replace("-", "").substring(0, 11);
+        String legalPersonKey = UUID.randomUUID().toString();
         String organizationKey = SetupTools
                 .createOrganization(
-                        internalToken, UUID.randomUUID().toString(), CnpjGenerator.generateCnpj(), prefix + " Ltda")
+                        internalToken, legalPersonKey, CnpjGenerator.generateCnpj(), prefix + " Ltda")
                 .getString("organization_key");
-        SetupTools.updateOrganization(internalToken, organizationKey, "APPROVED", null);
+        SetupTools.approveOrganization(internalToken, legalPersonKey, organizationKey);
 
         Response response = given()
                     .header(INTERNAL_TOKEN_HEADER, internalToken)
@@ -48,12 +49,13 @@ class TestDeleteInternalOrganization extends BaseIntegrationTest {
 
     @Test
     void deleteOrganization_adminRoleWithoutToken_returnsNoContent() {
+        String legalPersonKey = UUID.randomUUID().toString();
         String organizationKey = SetupTools
                 .createOrganization(
-                        internalToken, UUID.randomUUID().toString(), CnpjGenerator.generateCnpj(),
+                        internalToken, legalPersonKey, CnpjGenerator.generateCnpj(),
                         "Producoes Exemplo Ltda")
                 .getString("organization_key");
-        SetupTools.updateOrganization(internalToken, organizationKey, "APPROVED", null);
+        SetupTools.approveOrganization(internalToken, legalPersonKey, organizationKey);
 
         Response response = given()
                     .header("selected-user-roles", "admin")
@@ -123,12 +125,13 @@ class TestDeleteInternalOrganization extends BaseIntegrationTest {
 
     @Test
     void deleteOrganization_alreadyDeletedOrganization_returnsUnprocessableContent() {
+        String legalPersonKey = UUID.randomUUID().toString();
         String organizationKey = SetupTools
                 .createOrganization(
-                        internalToken, UUID.randomUUID().toString(), CnpjGenerator.generateCnpj(),
+                        internalToken, legalPersonKey, CnpjGenerator.generateCnpj(),
                         "Producoes Exemplo Ltda")
                 .getString("organization_key");
-        SetupTools.updateOrganization(internalToken, organizationKey, "APPROVED", null);
+        SetupTools.approveOrganization(internalToken, legalPersonKey, organizationKey);
         Response firstDeleteResponse = given()
                     .header(INTERNAL_TOKEN_HEADER, internalToken)
                 .when()
@@ -150,12 +153,13 @@ class TestDeleteInternalOrganization extends BaseIntegrationTest {
 
     @Test
     void deleteOrganization_missingInternalToken_returnsUnauthorized() {
+        String legalPersonKey = UUID.randomUUID().toString();
         String organizationKey = SetupTools
                 .createOrganization(
-                        internalToken, UUID.randomUUID().toString(), CnpjGenerator.generateCnpj(),
+                        internalToken, legalPersonKey, CnpjGenerator.generateCnpj(),
                         "Producoes Exemplo Ltda")
                 .getString("organization_key");
-        SetupTools.updateOrganization(internalToken, organizationKey, "APPROVED", null);
+        SetupTools.approveOrganization(internalToken, legalPersonKey, organizationKey);
 
         Response response = given()
                     .header("selected-user-roles", "organizer")
@@ -166,5 +170,25 @@ class TestDeleteInternalOrganization extends BaseIntegrationTest {
 
         assertThat(response.statusCode()).isEqualTo(401);
         assertThat(response.jsonPath().getString("code")).isEqualTo("GEN00401");
+    }
+
+    @Test
+    void deleteOrganization_errorOrganization_returnsUnprocessableContent() {
+        String legalPersonKey = UUID.randomUUID().toString();
+        String organizationKey = SetupTools
+                .createOrganization(
+                        internalToken, legalPersonKey, CnpjGenerator.generateCnpj(), "Producoes Exemplo Ltda")
+                .getString("organization_key");
+        SetupTools.approveOrganizationWithError(internalToken, legalPersonKey, organizationKey);
+
+        Response response = given()
+                    .header(INTERNAL_TOKEN_HEADER, internalToken)
+                .when()
+                    .delete(DELETE_ORGANIZATION, organizationKey)
+                .then()
+                    .extract().response();
+
+        assertThat(response.statusCode()).isEqualTo(422);
+        assertThat(response.jsonPath().getString("code")).isEqualTo("ORG00003");
     }
 }

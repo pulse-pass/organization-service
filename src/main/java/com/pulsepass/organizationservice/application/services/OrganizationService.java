@@ -2,6 +2,7 @@ package com.pulsepass.organizationservice.application.services;
 
 import com.pulsepass.organizationservice.application.dtos.input.CreateOrganizationDTO;
 import com.pulsepass.organizationservice.application.dtos.input.UpdateOrganizationDTO;
+import com.pulsepass.organizationservice.domain.SecretCipher;
 import com.pulsepass.organizationservice.domain.UnitOfWork;
 import com.pulsepass.organizationservice.domain.entities.Organization;
 import com.pulsepass.organizationservice.domain.entities.OrganizationHistory;
@@ -9,14 +10,23 @@ import com.pulsepass.organizationservice.domain.entities.OrganizationRejectionRe
 import com.pulsepass.organizationservice.domain.entities.OrganizationStatus;
 import com.pulsepass.organizationservice.domain.entities.OrganizationStatusEnum;
 import com.pulsepass.organizationservice.domain.exceptions.InvalidOrganizationRejectionReasonException;
+import com.pulsepass.organizationservice.domain.exceptions.LegalPersonRetrievalException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationAlreadyExistsException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationNotFoundException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationStatusNotAllowedException;
+import com.pulsepass.organizationservice.domain.exceptions.PaymentAccountCreationException;
+import com.pulsepass.organizationservice.domain.gateways.onboarding.OnboardingGateway;
+import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetLegalPersonInputDTO;
+import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetLegalPersonOutputDTO;
+import com.pulsepass.organizationservice.domain.gateways.paymentprovider.PaymentProviderGateway;
+import com.pulsepass.organizationservice.domain.gateways.paymentprovider.dtos.CreatePaymentAccountInputDTO;
+import com.pulsepass.organizationservice.domain.gateways.paymentprovider.dtos.CreatePaymentAccountOutputDTO;
 import com.pulsepass.organizationservice.domain.repositories.OrganizationHistoryRepository;
 import com.pulsepass.organizationservice.domain.repositories.OrganizationRejectionReasonRepository;
 import com.pulsepass.organizationservice.domain.repositories.OrganizationRepository;
 import com.pulsepass.organizationservice.domain.repositories.OrganizationStatusRepository;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,19 +43,28 @@ public class OrganizationService {
     private final OrganizationStatusRepository organizationStatusRepository;
     private final OrganizationHistoryRepository organizationHistoryRepository;
     private final OrganizationRejectionReasonRepository organizationRejectionReasonRepository;
+    private final OnboardingGateway onboardingGateway;
+    private final PaymentProviderGateway paymentProviderGateway;
+    private final SecretCipher secretCipher;
 
     public OrganizationService(
             UnitOfWork unitOfWork,
             OrganizationRepository organizationRepository,
             OrganizationStatusRepository organizationStatusRepository,
             OrganizationHistoryRepository organizationHistoryRepository,
-            OrganizationRejectionReasonRepository organizationRejectionReasonRepository
+            OrganizationRejectionReasonRepository organizationRejectionReasonRepository,
+            OnboardingGateway onboardingGateway,
+            PaymentProviderGateway paymentProviderGateway,
+            SecretCipher secretCipher
     ) {
         this.unitOfWork = unitOfWork;
         this.organizationRepository = organizationRepository;
         this.organizationStatusRepository = organizationStatusRepository;
         this.organizationHistoryRepository = organizationHistoryRepository;
         this.organizationRejectionReasonRepository = organizationRejectionReasonRepository;
+        this.onboardingGateway = onboardingGateway;
+        this.paymentProviderGateway = paymentProviderGateway;
+        this.secretCipher = secretCipher;
     }
 
     public Organization createOrganization(CreateOrganizationDTO dto) {
@@ -95,8 +114,16 @@ public class OrganizationService {
                 .findByEnumerator(dto.organizationStatus().name())
                 .orElseThrow(() -> new IllegalStateException("Organization status not found"));
 
+        final OrganizationStatus errorStatus = organizationStatusRepository
+                .findByEnumerator(OrganizationStatusEnum.ERROR.name())
+                .orElseThrow(() -> new IllegalStateException("Organization status ERROR not found"));
+
         OrganizationRejectionReason rejectionReason = null;
         if (dto.organizationRejectionReason() != null) {
+            logger.info(
+                    "OrganizationService.updateOrganization - Resolving the rejection reason {}",
+                    Map.of("organization_key", organizationKey)
+            );
             rejectionReason = organizationRejectionReasonRepository
                     .findByEnumerator(dto.organizationRejectionReason().name())
                     .orElseThrow(() -> new IllegalStateException("Organization rejection reason not found"));
@@ -124,15 +151,68 @@ public class OrganizationService {
         }
 
         OrganizationStatus oldStatus = organization.getOrganizationStatus();
+
+        if (dto.organizationStatus() == OrganizationStatusEnum.APPROVED) {
+            logger.info(
+                    "OrganizationService.updateOrganization - Creating the payment account for the approval {}",
+                    Map.of("organization_key", organizationKey)
+            );
+            GetLegalPersonOutputDTO legalPerson;
+            try {
+                legalPerson = onboardingGateway.getLegalPerson(
+                        new GetLegalPersonInputDTO(organization.getLegalPersonKey()));
+            } catch (Exception e) {
+                logger.error(
+                        "OrganizationService.updateOrganization - Legal person retrieval failed {}",
+                        Map.of("organization_key", organizationKey, "failure", e.getClass().getSimpleName())
+                );
+                throw new LegalPersonRetrievalException();
+            }
+            var phoneNumber = legalPerson.phoneNumbers().get(0);
+            var address = legalPerson.legalPersonAddress();
+
+            CreatePaymentAccountOutputDTO account;
+            try {
+                account = paymentProviderGateway.createPaymentAccount(new CreatePaymentAccountInputDTO(
+                        organization.getOrganizationKey(),
+                        legalPerson.name(),
+                        legalPerson.email(),
+                        legalPerson.documentNumber(),
+                        phoneNumber.areaCode() + phoneNumber.number(),
+                        legalPerson.legalPersonCompanyType(),
+                        legalPerson.monthlyRevenueAmount(),
+                        address.street(),
+                        address.number(),
+                        address.complement(),
+                        address.neighborhood(),
+                        address.postalCode()
+                ));
+            } catch (Exception e) {
+                logger.error(
+                        "OrganizationService.updateOrganization - Payment account creation failed {}",
+                        Map.of("organization_key", organizationKey, "failure", e.getClass().getSimpleName())
+                );
+                organization.setOrganizationStatus(errorStatus);
+                organizationRepository.save(organization);
+                organizationHistoryRepository.save(OrganizationHistory.fromOrganization(organization, oldStatus));
+                unitOfWork.commit();
+                throw new PaymentAccountCreationException();
+            }
+
+            organization.setExternalAccountKey(account.accountKey());
+            organization.setExternalWalletKey(account.walletKey());
+            organization.setExternalApiKey(secretCipher.encrypt(account.apiKey()));
+        }
+
         organization.setOrganizationStatus(newStatus);
         organization.setOrganizationRejectionReason(rejectionReason);
 
-        Organization saved = organizationRepository.save(organization);
-        organizationHistoryRepository.save(OrganizationHistory.fromOrganization(saved, oldStatus));
+        organizationRepository.save(organization);
+        organizationHistoryRepository.save(OrganizationHistory.fromOrganization(organization, oldStatus));
         unitOfWork.commit();
 
         logger.info("OrganizationService.updateOrganization - Successfully finished");
-        return saved;
+        return organization;
     }
 
     public void deleteOrganization(String organizationKey) {
@@ -156,8 +236,8 @@ public class OrganizationService {
         OrganizationStatus oldStatus = organization.getOrganizationStatus();
         organization.setOrganizationStatus(deletedStatus);
 
-        Organization saved = organizationRepository.save(organization);
-        organizationHistoryRepository.save(OrganizationHistory.fromOrganization(saved, oldStatus));
+        organizationRepository.save(organization);
+        organizationHistoryRepository.save(OrganizationHistory.fromOrganization(organization, oldStatus));
         unitOfWork.commit();
 
         logger.info("OrganizationService.deleteOrganization - Successfully finished");

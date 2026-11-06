@@ -42,6 +42,7 @@ services:
       MYSQL_HOST: ${MYSQL_HOST:-organization-service-test-mysql}
       MYSQL_PORT: 3306
       ASAAS_URL: ${ASAAS_URL:-${ASAAS_TEST_URL}}
+      ONBOARDING_URL: ${ONBOARDING_URL:-${ONBOARDING_TEST_URL}}
     ports:
       - "${PUBLISHED_API_PORT:-8082}:8080"
     cap_add:

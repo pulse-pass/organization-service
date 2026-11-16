@@ -22,14 +22,14 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 @Component
-public class OnboardingServiceGateway implements OnboardingGateway {
+public class OnboardingGatewayImpl implements OnboardingGateway {
 
-    private static final Logger logger = LoggerFactory.getLogger(OnboardingServiceGateway.class);
+    private static final Logger logger = LoggerFactory.getLogger(OnboardingGatewayImpl.class);
 
     private final RestClient restClient;
     private final String internalToken;
 
-    public OnboardingServiceGateway(
+    public OnboardingGatewayImpl(
             @Value("${app.onboarding.url}") String url,
             @Value("${app.internal-token}") String internalToken,
             RestClient.Builder restClientBuilder
@@ -43,7 +43,7 @@ public class OnboardingServiceGateway implements OnboardingGateway {
     @Override
     public GetPersonOutputDTO getPerson(GetPersonInputDTO input) {
         logger.info(
-                "OnboardingServiceGateway.getPerson - Fetching person {}",
+                "OnboardingGatewayImpl.getPerson - Fetching person {}",
                 Map.of("person_key", input.personKey())
         );
 
@@ -56,7 +56,7 @@ public class OnboardingServiceGateway implements OnboardingGateway {
                     .toEntity(OnboardingServiceGetPersonResponse.class);
         } catch (RestClientException ex) {
             logger.error(
-                    "OnboardingServiceGateway.getPerson - Request failed {}",
+                    "OnboardingGatewayImpl.getPerson - Request failed {}",
                     Map.of("person_key", input.personKey()),
                     ex
             );
@@ -65,7 +65,7 @@ public class OnboardingServiceGateway implements OnboardingGateway {
 
         if (response.getStatusCode() != HttpStatus.OK) {
             logger.error(
-                    "OnboardingServiceGateway.getPerson - Unexpected status {}",
+                    "OnboardingGatewayImpl.getPerson - Unexpected status {}",
                     Map.of("person_key", input.personKey(), "status", response.getStatusCode().value())
             );
             throw new PersonRetrievalException();
@@ -73,7 +73,7 @@ public class OnboardingServiceGateway implements OnboardingGateway {
         var body = response.getBody();
         if (body == null) {
             logger.error(
-                    "OnboardingServiceGateway.getPerson - Response without body {}",
+                    "OnboardingGatewayImpl.getPerson - Response without body {}",
                     Map.of("person_key", input.personKey())
             );
             throw new PersonRetrievalException();
@@ -106,7 +106,7 @@ public class OnboardingServiceGateway implements OnboardingGateway {
     @Override
     public void deleteLegalPersonCollaborators(DeleteLegalPersonCollaboratorsInputDTO input) {
         logger.info(
-                "OnboardingServiceGateway.deleteLegalPersonCollaborators - Deleting collaborators {}",
+                "OnboardingGatewayImpl.deleteLegalPersonCollaborators - Deleting collaborators {}",
                 Map.of("legal_person_key", input.legalPersonKey())
         );
 
@@ -121,7 +121,7 @@ public class OnboardingServiceGateway implements OnboardingGateway {
                     .toBodilessEntity();
         } catch (RestClientException ex) {
             logger.error(
-                    "OnboardingServiceGateway.deleteLegalPersonCollaborators - Request failed {}",
+                    "OnboardingGatewayImpl.deleteLegalPersonCollaborators - Request failed {}",
                     Map.of("legal_person_key", input.legalPersonKey()),
                     ex
             );
@@ -130,7 +130,7 @@ public class OnboardingServiceGateway implements OnboardingGateway {
 
         if (response.getStatusCode() != HttpStatus.NO_CONTENT) {
             logger.error(
-                    "OnboardingServiceGateway.deleteLegalPersonCollaborators - Unexpected status {}",
+                    "OnboardingGatewayImpl.deleteLegalPersonCollaborators - Unexpected status {}",
                     Map.of("legal_person_key", input.legalPersonKey(), "status", response.getStatusCode().value())
             );
             throw new AccessRevocationException();

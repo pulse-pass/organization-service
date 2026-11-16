@@ -10,7 +10,7 @@ import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.DeleteL
 import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetPersonInputDTO;
 import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.LegalPersonAddressDTO;
 import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.PersonPhoneNumberDTO;
-import com.pulsepass.organizationservice.infrastructure.gateways.onboardingservice.OnboardingServiceGateway;
+import com.pulsepass.organizationservice.infrastructure.gateways.onboardingservice.OnboardingGatewayImpl;
 import com.pulsepass.organizationservice.unit.infrastructure.gateways.StubHttpServer;
 import com.pulsepass.organizationservice.unit.infrastructure.gateways.StubHttpServer.Response;
 import java.math.BigDecimal;
@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
-class OnboardingServiceGatewayTest {
+class OnboardingGatewayImplTest {
 
     private static final String PERSON_KEY = "7b0f5e6a-1c3d-4e8f-9a2b-0d1e2f3a4b5c";
     private static final String PATH = "/onboarding/internal/persons/" + PERSON_KEY;
@@ -60,7 +60,7 @@ class OnboardingServiceGatewayTest {
             """;
 
     private StubHttpServer server;
-    private OnboardingServiceGateway gateway;
+    private OnboardingGatewayImpl gateway;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -71,7 +71,7 @@ class OnboardingServiceGatewayTest {
                 .build();
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(Duration.ofMillis(300));
-        gateway = new OnboardingServiceGateway(
+        gateway = new OnboardingGatewayImpl(
                 server.url(), TOKEN, RestClient.builder().requestFactory(requestFactory));
     }
 

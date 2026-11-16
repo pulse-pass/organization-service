@@ -19,14 +19,14 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
 @Component
-public class AsaasGateway implements PaymentProviderGateway {
+public class PaymentProviderGatewayImpl implements PaymentProviderGateway {
 
-    private static final Logger logger = LoggerFactory.getLogger(AsaasGateway.class);
+    private static final Logger logger = LoggerFactory.getLogger(PaymentProviderGatewayImpl.class);
 
     private final RestClient restClient;
     private final String apiKey;
 
-    public AsaasGateway(
+    public PaymentProviderGatewayImpl(
             @Value("${app.asaas.url}") String url,
             @Value("${app.asaas.api-key}") String apiKey,
             RestClient.Builder restClientBuilder
@@ -40,7 +40,7 @@ public class AsaasGateway implements PaymentProviderGateway {
     @Override
     public CreatePaymentAccountOutputDTO createPaymentAccount(CreatePaymentAccountInputDTO input) {
         logger.info(
-                "AsaasGateway.createPaymentAccount - Creating payment account {}",
+                "PaymentProviderGatewayImpl.createPaymentAccount - Creating payment account {}",
                 Map.of("organization_key", input.organizationKey())
         );
 
@@ -70,13 +70,13 @@ public class AsaasGateway implements PaymentProviderGateway {
                     .toEntity(AsaasCreateAccountResponse.class);
         } catch (RestClientResponseException ex) {
             logger.error(
-                    "AsaasGateway.createPaymentAccount - Request rejected {}",
+                    "PaymentProviderGatewayImpl.createPaymentAccount - Request rejected {}",
                     Map.of("organization_key", input.organizationKey(), "status", ex.getStatusCode().value())
             );
             throw new PaymentAccountCreationException();
         } catch (RestClientException ex) {
             logger.error(
-                    "AsaasGateway.createPaymentAccount - Request failed {}",
+                    "PaymentProviderGatewayImpl.createPaymentAccount - Request failed {}",
                     Map.of("organization_key", input.organizationKey(), "failure", ex.getClass().getSimpleName())
             );
             throw new PaymentAccountCreationException();
@@ -84,7 +84,7 @@ public class AsaasGateway implements PaymentProviderGateway {
 
         if (response.getStatusCode() != HttpStatus.OK) {
             logger.error(
-                    "AsaasGateway.createPaymentAccount - Unexpected status {}",
+                    "PaymentProviderGatewayImpl.createPaymentAccount - Unexpected status {}",
                     Map.of("organization_key", input.organizationKey(), "status", response.getStatusCode().value())
             );
             throw new PaymentAccountCreationException();
@@ -92,7 +92,7 @@ public class AsaasGateway implements PaymentProviderGateway {
         var body = response.getBody();
         if (body == null) {
             logger.error(
-                    "AsaasGateway.createPaymentAccount - Response without body {}",
+                    "PaymentProviderGatewayImpl.createPaymentAccount - Response without body {}",
                     Map.of("organization_key", input.organizationKey())
             );
             throw new PaymentAccountCreationException();

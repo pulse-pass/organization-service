@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.pulsepass.organizationservice.domain.exceptions.PaymentAccountCreationException;
 import com.pulsepass.organizationservice.domain.gateways.paymentprovider.dtos.CreatePaymentAccountInputDTO;
-import com.pulsepass.organizationservice.infrastructure.gateways.asaas.AsaasGateway;
+import com.pulsepass.organizationservice.infrastructure.gateways.asaas.PaymentProviderGatewayImpl;
 import com.pulsepass.organizationservice.unit.infrastructure.gateways.StubHttpServer;
 import com.pulsepass.organizationservice.unit.infrastructure.gateways.StubHttpServer.Response;
 import java.math.BigDecimal;
@@ -19,7 +19,7 @@ import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.json.JsonMapper;
 
-class AsaasGatewayTest {
+class PaymentProviderGatewayImplTest {
 
     private static final String PATH = "/v3/accounts";
     private static final String API_KEY = "gateway-api-key";
@@ -34,7 +34,7 @@ class AsaasGatewayTest {
 
     private final JsonMapper mapper = JsonMapper.builder().build();
     private StubHttpServer server;
-    private AsaasGateway gateway;
+    private PaymentProviderGatewayImpl gateway;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -45,7 +45,7 @@ class AsaasGatewayTest {
                 .build();
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(Duration.ofMillis(300));
-        gateway = new AsaasGateway(
+        gateway = new PaymentProviderGatewayImpl(
                 server.url(), API_KEY, RestClient.builder().requestFactory(requestFactory));
     }
 

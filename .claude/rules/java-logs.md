@@ -8,7 +8,7 @@ paths:
 
 - **ORG-161** Logs follow `ClassName.method - message`.
 - **ORG-162** The message is literal text; data goes in a single `Map` argument (`logger.error("X.y - Failed to create the user {}", Map.of("person_key", key), e)`), never interpolated in the sentence.
-- **ORG-163** The exception is passed as the last argument, never `e.getMessage()`.
+- **ORG-163** The exception is passed as the last argument, never `e.getMessage()`, except where a gateway rule forbids passing it because its message embeds a body or a URL.
 - **ORG-164** A log never receives a value that came straight from the request (path variable, query string, body), which Sonar flags as log injection (`javasecurity:S5145`) and fails the quality gate.
 - **ORG-165** Log the value of the loaded entity (`organization.getOrganizationKey()`) instead, or leave it out when nothing was loaded yet.
 - **ORG-166** In the application layer, every `if` that changes the flow has a log as its first line: `logger.warn` when it refuses the request, `logger.info` when it takes another path.

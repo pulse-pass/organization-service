@@ -17,7 +17,7 @@ paths:
 - **ORG-136** The domain interface is named after the role or the internal service (`PaymentProviderGateway`, `OnboardingGateway`).
 - **ORG-137** Each gateway has its own folder in `domain/gateways/<gateway>/` (named after the gateway, not the provider), holding the interface and a `dtos/` folder (e.g. `paymentprovider/PaymentProviderGateway`, `paymentprovider/dtos/CreatePaymentAccountInputDTO`).
 - **ORG-138** The interface receives and returns those DTOs, named after the operation, never loose parameters.
-- **ORG-139** The implementation lives in `infrastructure/gateways/<provider>/`, carries the name of the system, one class per system (`AsaasGateway`, `OnboardingServiceGateway`), and uses `RestClient`.
+- **ORG-139** The implementation lives in `infrastructure/gateways/<provider>/`, is named after the domain interface with the `Impl` suffix, like the `*RepositoryImpl` (e.g. `asaas/PaymentProviderGatewayImpl`, `onboardingservice/OnboardingGatewayImpl`), so the system appears only in the folder; one class per system, using `RestClient`.
 - **ORG-140** Request and response bodies are typed records in `infrastructure/gateways/<provider>/dtos` (`<Provider><Operation>Request` / `Response`) with `@JsonProperty` on every field; no `Map` bodies.
 
 ## Configuration
@@ -38,7 +38,7 @@ paths:
 - **ORG-153** A domain exception with a different meaning for the client gets its own `catch` before it and is rethrown.
 - **ORG-154** A provider that does not use snake_case (e.g. Asaas, camelCase) has request and response records with an explicit `@JsonProperty` on every field, which wins over `spring.jackson.property-naming-strategy`.
 - **ORG-155** Response records of such a provider carry `@JsonIgnoreProperties(ignoreUnknown = true)` and only the fields the service uses; an optional request field is omitted when null with `@JsonInclude(JsonInclude.Include.NON_NULL)`.
-- **ORG-156** A gateway whose response or request carries a secret (API key, token) never logs the response body nor passes the exception to the logger, because `RestClientResponseException` messages embed the body.
+- **ORG-156** A gateway whose request or response body carries a secret (password, API key, token) never logs the response body nor passes the exception to the logger, because `RestClientResponseException` messages embed the body.
 - **ORG-157** Such a gateway logs only the `Map` with the key of the resource, the HTTP status, the error codes and the exception class name.
 - **ORG-158** A flow that calls a gateway inside the transaction (`begin()`/`commit()`) calls it after the lock and the validations.
 - **ORG-159** When only the call to the provider failed and the failure must be persisted (e.g. status `ERROR`), the service catches `Exception` around that call, saves the status and its history, commits and throws the domain exception of the operation.

@@ -1,9 +1,12 @@
 package com.pulsepass.organizationservice.unit.infrastructure.gateways.onboardingservice;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.pulsepass.organizationservice.domain.exceptions.AccessRevocationException;
 import com.pulsepass.organizationservice.domain.exceptions.PersonRetrievalException;
+import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.DeleteLegalPersonCollaboratorsInputDTO;
 import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetPersonInputDTO;
 import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.LegalPersonAddressDTO;
 import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.PersonPhoneNumberDTO;
@@ -23,8 +26,12 @@ class OnboardingServiceGatewayTest {
 
     private static final String PERSON_KEY = "7b0f5e6a-1c3d-4e8f-9a2b-0d1e2f3a4b5c";
     private static final String PATH = "/onboarding/internal/persons/" + PERSON_KEY;
+    private static final String COLLABORATORS_PATH =
+            "/onboarding/internal/legal_persons/" + PERSON_KEY + "/collaborators";
     private static final String TOKEN = "internal-secret";
     private static final GetPersonInputDTO INPUT = new GetPersonInputDTO(PERSON_KEY);
+    private static final DeleteLegalPersonCollaboratorsInputDTO DELETE_INPUT =
+            new DeleteLegalPersonCollaboratorsInputDTO(PERSON_KEY);
     private static final String BODY = """
             {
               "person_key": "7b0f5e6a-1c3d-4e8f-9a2b-0d1e2f3a4b5c",
@@ -152,5 +159,75 @@ class OnboardingServiceGatewayTest {
 
         assertThatThrownBy(() -> gateway.getPerson(INPUT))
                 .isInstanceOf(PersonRetrievalException.class);
+    }
+
+    @Test
+    void deleteLegalPersonCollaborators_noContent_completesWithoutError() {
+        server.on("DELETE", COLLABORATORS_PATH, Response.empty(204));
+
+        assertThatCode(() -> gateway.deleteLegalPersonCollaborators(DELETE_INPUT)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void deleteLegalPersonCollaborators_noContent_sendsDeleteWithInternalToken() {
+        server.on("DELETE", COLLABORATORS_PATH, Response.empty(204));
+
+        gateway.deleteLegalPersonCollaborators(DELETE_INPUT);
+
+        assertThat(server.received()).hasSize(1);
+        var request = server.received().get(0);
+        assertThat(request.method()).isEqualTo("DELETE");
+        assertThat(request.path()).isEqualTo(COLLABORATORS_PATH);
+        assertThat(request.headers().get("internal-token")).isEqualTo(TOKEN);
+        assertThat(request.body()).isEmpty();
+    }
+
+    @Test
+    void deleteLegalPersonCollaborators_serverError_throwsAccessRevocationException() {
+        server.on("DELETE", COLLABORATORS_PATH, Response.of(500, "{\"code\":\"GEN00500\"}"));
+
+        assertThatThrownBy(() -> gateway.deleteLegalPersonCollaborators(DELETE_INPUT))
+                .isInstanceOf(AccessRevocationException.class);
+    }
+
+    @Test
+    void deleteLegalPersonCollaborators_notFound_throwsAccessRevocationException() {
+        server.on("DELETE", COLLABORATORS_PATH, Response.of(404, "{\"code\":\"ONB00009\"}"));
+
+        assertThatThrownBy(() -> gateway.deleteLegalPersonCollaborators(DELETE_INPUT))
+                .isInstanceOf(AccessRevocationException.class);
+    }
+
+    @Test
+    void deleteLegalPersonCollaborators_unprocessableContent_throwsAccessRevocationException() {
+        server.on("DELETE", COLLABORATORS_PATH, Response.of(422, "{\"code\":\"ONB00011\"}"));
+
+        assertThatThrownBy(() -> gateway.deleteLegalPersonCollaborators(DELETE_INPUT))
+                .isInstanceOf(AccessRevocationException.class);
+    }
+
+    @Test
+    void deleteLegalPersonCollaborators_statusOk_throwsAccessRevocationException() {
+        server.on("DELETE", COLLABORATORS_PATH, Response.of(200, "{}"));
+
+        assertThatThrownBy(() -> gateway.deleteLegalPersonCollaborators(DELETE_INPUT))
+                .isInstanceOf(AccessRevocationException.class);
+    }
+
+    @Test
+    void deleteLegalPersonCollaborators_readTimeoutExceeded_throwsAccessRevocationException() {
+        server.on("DELETE", COLLABORATORS_PATH, Response.empty(204));
+        server.delay("DELETE", COLLABORATORS_PATH, 1500);
+
+        assertThatThrownBy(() -> gateway.deleteLegalPersonCollaborators(DELETE_INPUT))
+                .isInstanceOf(AccessRevocationException.class);
+    }
+
+    @Test
+    void deleteLegalPersonCollaborators_serverDown_throwsAccessRevocationException() {
+        server.close();
+
+        assertThatThrownBy(() -> gateway.deleteLegalPersonCollaborators(DELETE_INPUT))
+                .isInstanceOf(AccessRevocationException.class);
     }
 }

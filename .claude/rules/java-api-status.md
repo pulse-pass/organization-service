@@ -14,3 +14,4 @@ paths:
 - **ORG-067** Logical removal is `DELETE` on the same item (status `DELETED`, only from the allowed source status), answering 204 without a body.
 - **ORG-068** Both routes look the item up by key with the lock (`findForUpdateBy<Key>`, the not-found exception answering 404) and check the source status before the option, inside the transaction.
 - **ORG-069** Every change writes one `<x>_history` row with the old status.
+- **ORG-261** Removing an organization commits `DELETED` first and then revokes the collaborators' access through `OnboardingGateway.deleteLegalPersonCollaborators`; a revocation failure answers 422 `AccessRevocationException` without undoing the removal, and the API offers no retry (a `DELETED` organization cannot be removed again).

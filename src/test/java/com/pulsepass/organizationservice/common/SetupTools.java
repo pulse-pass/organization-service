@@ -109,7 +109,12 @@ public final class SetupTools {
         return response.jsonPath();
     }
 
-    public static void deleteOrganization(String internalToken, String organizationKey) {
+    public static void deleteOrganization(String internalToken, String legalPersonKey, String organizationKey) {
+        MockTools.clearMocker();
+        MockTools.addExpectation(
+                "onboarding-service/delete-legal_persons_collaborators",
+                Map.of("legal_person_key", legalPersonKey));
+
         Response response = given()
                     .header("internal-token", internalToken)
                 .when()

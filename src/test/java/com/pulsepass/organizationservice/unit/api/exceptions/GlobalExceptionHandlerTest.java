@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import com.pulsepass.organizationservice.api.exceptions.ErrorResponse;
 import com.pulsepass.organizationservice.api.exceptions.ExtraFieldErrorResponse;
 import com.pulsepass.organizationservice.api.exceptions.GlobalExceptionHandler;
+import com.pulsepass.organizationservice.domain.exceptions.AccessRevocationException;
 import com.pulsepass.organizationservice.domain.exceptions.DomainException;
 import com.pulsepass.organizationservice.domain.exceptions.InvalidOrganizationRejectionReasonException;
 import com.pulsepass.organizationservice.domain.exceptions.MissingSelectedAgentKeyException;
@@ -57,6 +58,7 @@ class GlobalExceptionHandlerTest {
         messages.addMessage("error.organization.invalid_rejection_reason", Locale.ENGLISH, "invalid reason");
         messages.addMessage("error.organization.payment_account_creation", Locale.ENGLISH, "payment account failure");
         messages.addMessage("error.organization.person_retrieval", Locale.ENGLISH, "person failure");
+        messages.addMessage("error.organization.access_revocation", Locale.ENGLISH, "access revocation failure");
         messages.addMessage("error.unauthorized", Locale.ENGLISH, "unauthorized");
         messages.addMessage("error.not_found", Locale.ENGLISH, "not found");
         messages.addMessage("error.method_not_allowed", Locale.ENGLISH, "method not allowed");
@@ -135,6 +137,19 @@ class GlobalExceptionHandlerTest {
                 "Unprocessable Content",
                 "person failure",
                 "ORG00006",
+                List.of()
+        ));
+    }
+
+    @Test
+    void handleDomain_accessRevocation_returns422WithOrg00007() {
+        var response = handler.handleDomain(new AccessRevocationException());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
+        assertThat(response.getBody()).isEqualTo(new ErrorResponse(
+                "Unprocessable Content",
+                "access revocation failure",
+                "ORG00007",
                 List.of()
         ));
     }

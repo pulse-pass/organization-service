@@ -4,6 +4,7 @@ import static com.pulsepass.organizationservice.domain.entities.OrganizationStat
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -21,6 +22,7 @@ import com.pulsepass.organizationservice.domain.entities.OrganizationRejectionRe
 import com.pulsepass.organizationservice.domain.entities.OrganizationRejectionReasonEnum;
 import com.pulsepass.organizationservice.domain.entities.OrganizationStatus;
 import com.pulsepass.organizationservice.domain.entities.OrganizationStatusEnum;
+import com.pulsepass.organizationservice.domain.exceptions.AccessRevocationException;
 import com.pulsepass.organizationservice.domain.exceptions.InvalidOrganizationRejectionReasonException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationAlreadyExistsException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationNotFoundException;
@@ -28,6 +30,7 @@ import com.pulsepass.organizationservice.domain.exceptions.OrganizationStatusNot
 import com.pulsepass.organizationservice.domain.exceptions.PaymentAccountCreationException;
 import com.pulsepass.organizationservice.domain.exceptions.PersonRetrievalException;
 import com.pulsepass.organizationservice.domain.gateways.onboarding.OnboardingGateway;
+import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.DeleteLegalPersonCollaboratorsInputDTO;
 import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetPersonInputDTO;
 import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetPersonOutputDTO;
 import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.LegalPersonAddressDTO;
@@ -605,6 +608,38 @@ class OrganizationServiceTest {
     }
 
     @Test
+    void deleteOrganization_approved_revokesCollaboratorsAccessAfterCommit() {
+        stubOrganization("APPROVED");
+        stubStatus("DELETED");
+        when(organizationRepository.save(any(Organization.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.deleteOrganization("org-key");
+
+        var order = inOrder(unitOfWork, onboardingGateway);
+        order.verify(unitOfWork).commit();
+        order.verify(onboardingGateway).deleteLegalPersonCollaborators(
+                new DeleteLegalPersonCollaboratorsInputDTO(LEGAL_PERSON_KEY));
+    }
+
+    @Test
+    void deleteOrganization_revocationFails_throwsAccessRevocationAfterCommitWithDeletedOrganization() {
+        stubOrganization("APPROVED");
+        stubStatus("DELETED");
+        when(organizationRepository.save(any(Organization.class))).thenAnswer(inv -> inv.getArgument(0));
+        doThrow(new RuntimeException("onboarding down")).when(onboardingGateway)
+                .deleteLegalPersonCollaborators(any(DeleteLegalPersonCollaboratorsInputDTO.class));
+
+        assertThatThrownBy(() -> service.deleteOrganization("org-key"))
+                .isInstanceOf(AccessRevocationException.class);
+
+        ArgumentCaptor<Organization> captor = ArgumentCaptor.forClass(Organization.class);
+        verify(organizationRepository).save(captor.capture());
+        assertThat(captor.getValue().getOrganizationStatus().getEnumerator()).isEqualTo("DELETED");
+        verify(unitOfWork).commit();
+        verify(unitOfWork, never()).rollback();
+    }
+
+    @Test
     void deleteOrganization_unknownKey_throwsNotFoundWithoutCommit() {
         stubStatus("DELETED");
         when(organizationRepository.findForUpdateByOrganizationKey("org-key")).thenReturn(Optional.empty());
@@ -614,6 +649,7 @@ class OrganizationServiceTest {
 
         verify(unitOfWork).begin();
         verify(unitOfWork, never()).commit();
+        verifyNoInteractions(onboardingGateway);
     }
 
     @ParameterizedTest
@@ -628,6 +664,7 @@ class OrganizationServiceTest {
         verify(unitOfWork).begin();
         verify(unitOfWork, never()).commit();
         verify(organizationRepository, never()).save(any());
+        verifyNoInteractions(onboardingGateway);
     }
 
     @Test

@@ -1,7 +1,9 @@
 package com.pulsepass.organizationservice.infrastructure.gateways.onboardingservice;
 
+import com.pulsepass.organizationservice.domain.exceptions.AccessRevocationException;
 import com.pulsepass.organizationservice.domain.exceptions.PersonRetrievalException;
 import com.pulsepass.organizationservice.domain.gateways.onboarding.OnboardingGateway;
+import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.DeleteLegalPersonCollaboratorsInputDTO;
 import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetPersonInputDTO;
 import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetPersonOutputDTO;
 import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.LegalPersonAddressDTO;
@@ -13,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -98,5 +101,39 @@ public class OnboardingServiceGateway implements OnboardingGateway {
                         )
                 )
         );
+    }
+
+    @Override
+    public void deleteLegalPersonCollaborators(DeleteLegalPersonCollaboratorsInputDTO input) {
+        logger.info(
+                "OnboardingServiceGateway.deleteLegalPersonCollaborators - Deleting collaborators {}",
+                Map.of("legal_person_key", input.legalPersonKey())
+        );
+
+        ResponseEntity<Void> response;
+        try {
+            response = restClient.delete()
+                    .uri("/onboarding/internal/legal_persons/{legal_person_key}/collaborators",
+                            input.legalPersonKey())
+                    .header("internal-token", this.internalToken)
+                    .retrieve()
+                    .onStatus(HttpStatusCode::isError, (req, res) -> {})
+                    .toBodilessEntity();
+        } catch (RestClientException ex) {
+            logger.error(
+                    "OnboardingServiceGateway.deleteLegalPersonCollaborators - Request failed {}",
+                    Map.of("legal_person_key", input.legalPersonKey()),
+                    ex
+            );
+            throw new AccessRevocationException();
+        }
+
+        if (response.getStatusCode() != HttpStatus.NO_CONTENT) {
+            logger.error(
+                    "OnboardingServiceGateway.deleteLegalPersonCollaborators - Unexpected status {}",
+                    Map.of("legal_person_key", input.legalPersonKey(), "status", response.getStatusCode().value())
+            );
+            throw new AccessRevocationException();
+        }
     }
 }

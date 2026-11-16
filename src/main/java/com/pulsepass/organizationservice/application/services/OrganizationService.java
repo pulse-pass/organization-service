@@ -9,6 +9,7 @@ import com.pulsepass.organizationservice.domain.entities.OrganizationHistory;
 import com.pulsepass.organizationservice.domain.entities.OrganizationRejectionReason;
 import com.pulsepass.organizationservice.domain.entities.OrganizationStatus;
 import com.pulsepass.organizationservice.domain.entities.OrganizationStatusEnum;
+import com.pulsepass.organizationservice.domain.exceptions.AccessRevocationException;
 import com.pulsepass.organizationservice.domain.exceptions.InvalidOrganizationRejectionReasonException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationAlreadyExistsException;
 import com.pulsepass.organizationservice.domain.exceptions.OrganizationNotFoundException;
@@ -16,6 +17,7 @@ import com.pulsepass.organizationservice.domain.exceptions.OrganizationStatusNot
 import com.pulsepass.organizationservice.domain.exceptions.PaymentAccountCreationException;
 import com.pulsepass.organizationservice.domain.exceptions.PersonRetrievalException;
 import com.pulsepass.organizationservice.domain.gateways.onboarding.OnboardingGateway;
+import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.DeleteLegalPersonCollaboratorsInputDTO;
 import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetPersonInputDTO;
 import com.pulsepass.organizationservice.domain.gateways.onboarding.dtos.GetPersonOutputDTO;
 import com.pulsepass.organizationservice.domain.gateways.paymentprovider.PaymentProviderGateway;
@@ -242,6 +244,18 @@ public class OrganizationService {
         organizationRepository.save(organization);
         organizationHistoryRepository.save(OrganizationHistory.fromOrganization(organization, oldStatus));
         unitOfWork.commit();
+
+        try {
+            onboardingGateway.deleteLegalPersonCollaborators(
+                    new DeleteLegalPersonCollaboratorsInputDTO(organization.getLegalPersonKey()));
+        } catch (Exception e) {
+            logger.error(
+                    "OrganizationService.deleteOrganization - Access revocation failed {}",
+                    Map.of("organization_key", organization.getOrganizationKey()),
+                    e
+            );
+            throw new AccessRevocationException();
+        }
 
         logger.info("OrganizationService.deleteOrganization - Successfully finished");
     }

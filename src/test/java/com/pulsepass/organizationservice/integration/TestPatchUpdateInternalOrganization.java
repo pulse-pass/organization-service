@@ -209,7 +209,7 @@ class TestPatchUpdateInternalOrganization extends BaseIntegrationTest {
                         "Producoes Exemplo Ltda")
                 .getString("organization_key");
         SetupTools.approveOrganization(internalToken, legalPersonKey, organizationKey);
-        SetupTools.deleteOrganization(internalToken, organizationKey);
+        SetupTools.deleteOrganization(internalToken, legalPersonKey, organizationKey);
 
         Response response = given()
                     .header(INTERNAL_TOKEN_HEADER, internalToken)
